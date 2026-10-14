@@ -61,9 +61,9 @@ class ScanTests(unittest.TestCase):
     def test_release_metadata_is_consistent(self):
         from pathlib import Path
         root = Path(__file__).resolve().parents[1]
-        self.assertIn('version: 0.11.7', (root / 'config.yaml').read_text())
-        self.assertIn('Home Explorer v0.11.7', (root / 'web' / 'index.html').read_text())
-        self.assertIn('## [0.11.7]', (root / 'CHANGELOG.md').read_text())
+        self.assertIn('version: 0.12.0', (root / 'config.yaml').read_text())
+        self.assertIn('Home Explorer v0.12.0', (root / 'web' / 'index.html').read_text())
+        self.assertIn('## [0.12.0]', (root / 'CHANGELOG.md').read_text())
     def test_save_reload_local_mapping(self):
         import tempfile
         from pathlib import Path
