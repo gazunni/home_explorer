@@ -9,3 +9,5 @@
 - v0.6.0: GitHub published 2026-10-14. Awaiting Home Assistant functional verification.
 
 - v0.7.0: Release candidate staged via GitHub PR. Runtime verification pending.
+
+- v0.8.0: Development candidate, NOT installed or verified on Home Assistant.
