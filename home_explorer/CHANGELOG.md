@@ -2,6 +2,16 @@
 
 All notable changes to Home Explorer are documented here. Home Explorer remains read-only; capability descriptions do not verify executable Home Assistant commands.
 
+## [0.6.0] — 2026-10-14
+### Added
+- Actual entity names, IDs and latest read-only state values under each device capability group.
+- Search by registered entity name/ID.
+- Entity-level sensitive-name filtering.
+### Changed
+- Replaced the repeated manufacturer caveat with a single explanation in the header.
+### Limitations
+- States are observations, not verified command availability.
+
 ## [0.5.0] — 2026-10-14
 ### Changed
 - Replaced the large device card grid with compact, one-device-per-row entries.
