@@ -1,14 +1,19 @@
-repository.yaml
-README.md
-DEPLOYED.md
-CHANGED_FILES.txt
-PROJECT_TREE.txt
-.env.example
-home_explorer/
-  config.yaml
-  Dockerfile
-  server.py
-  web/
-    index.html
-    style.css
-    app.js
+home_explorer repository/
+  .env.example
+  README.md
+  DEPLOYED.md
+  INSTALLATION.md
+  CHANGED_FILES.txt
+  PROJECT_TREE.txt
+  REPOSITORY_UPDATES.md
+  repository.yaml
+  home_explorer/
+    Dockerfile
+    config.yaml
+    server.py
+    tests/
+      test_discovery.py
+    web/
+      app.js
+      index.html
+      style.css
