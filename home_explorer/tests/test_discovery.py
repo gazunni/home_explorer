@@ -29,6 +29,15 @@ class ScanTests(unittest.TestCase):
                                         'Private':'switch.secret_token'}))
             self.assertEqual(load_power_dependencies(path),
                              {'Appliance':'switch.good_outlet'})
+    def test_mapping_survives_repeated_save(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'mapping.json'
+            save_power_dependencies({'Appliance':'switch.outlet_one'}, path)
+            save_power_dependencies({'Appliance':'switch.outlet_two'}, path)
+            self.assertEqual(load_power_dependencies(path),
+                             {'Appliance':'switch.outlet_two'})
     def test_save_reload_local_mapping(self):
         import tempfile
         from pathlib import Path
