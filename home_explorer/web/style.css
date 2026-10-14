@@ -50,4 +50,16 @@
 .glance-line{display:flex;justify-content:space-between;gap:12px;padding:5px 0;flex-wrap:wrap;color:#b4c7d9}
 .glance-line strong{color:#a8e3d8;font-weight:600}
 
-.mapper-section{margin:20px 0;padding:14px;border:1px solid #6b8793;border-radius:12px}.mapper-section select{max-width:100%;padding:10px}.mapper-list,.mapper-sources{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;max-height:220px;overflow:auto;margin:12px 0}.mapper-device,.mapper-source{padding:12px;border:1px solid #7a929a;border-radius:8px;cursor:pointer;text-align:left}.mapped-pair{display:flex;justify-content:space-between;gap:10px;margin:8px 0}.mapper-section button{margin:4px}
+.mapper-section{margin:12px 0;border:1px solid #456278;border-radius:12px;background:#0c1a29}
+.mapper-section details{padding:12px 15px}
+.mapper-section summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;list-style:revert}
+.mapper-section summary strong{font-size:16px}
+#map-count{font-size:12px;color:#a8e3d8}
+.mapper-section p{font-size:13px;color:#b9ccdb}
+.mapper-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}
+.mapper-fields label{display:flex;flex-direction:column;gap:5px;font-size:13px;color:#c8d6e5;min-width:0}
+.mapper-fields select,.mapper-fields input{box-sizing:border-box;width:100%;min-width:0;padding:10px;border-radius:8px;background:#182c3e;color:#e5f3fb;border:1px solid #536d82;font-size:14px}
+.mapper-section button{margin:5px 6px 5px 0;padding:8px 12px}
+.mapped-pair{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-top:1px solid #344b60;overflow-wrap:anywhere}
+.mapped-pair span{min-width:0}
+#map-proposal{padding:10px;border:1px solid #557c7a;border-radius:8px;margin:12px 0}
