@@ -1,4 +1,4 @@
-home_explorer repository/
+home_explorer/
   .env.example
   README.md
   DEPLOYED.md
@@ -14,6 +14,6 @@ home_explorer repository/
     tests/
       test_discovery.py
     web/
-      app.js
       index.html
+      app.js
       style.css
