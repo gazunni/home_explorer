@@ -8,7 +8,7 @@
 - Compact, expandable device rows with manufacturer/model and parent-device information where available.
 - Automation status counts and exact structured device-reference counts; automation names, configuration bodies and IDs remain excluded. Some automations may be unavailable for analysis; coverage is reported.
 - Domain-wide service catalogue and reported feature flags; neither proves a service can be called for an individual entity.
-- Read-only at-a-glance status summaries where real readings are available.\n- Optional, explicitly configured upstream smart-outlet relationships (edit `home_explorer/power_dependencies.json`); outlet power is not proof that an appliance is operating.
+- Read-only at-a-glance status summaries where real readings are available.\n- Optional, explicitly confirmed upstream smart-outlet relationships using the in-app mapper, saved in add-on `/data/power_dependencies.json`; outlet power is not proof that an appliance is operating.
 - Device-specific entity names and readable Home Assistant states, with technical entity IDs and raw values available on demand.
 - Separate categories for information-only entities and **potential** controls. A potential control is not a verified working command.
 - Separate device and Sense energy-monitor detection views.
