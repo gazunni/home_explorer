@@ -1,4 +1,4 @@
-"""Home Explorer 0.3.0: on-demand, read-only registry exploration."""
+"""Home Explorer 0.4.0: on-demand, read-only registry exploration."""
 import json
 import os
 import re
@@ -65,6 +65,10 @@ CAPABILITY_GUIDE = {
     'remote': ('Remote commands', 'A remote-control entity is exposed.'),
 }
 
+# Classification is based on domain only. It is not an authorization or proof of a service call.
+OBSERVATION_DOMAINS = {'sensor', 'binary_sensor'}
+POTENTIAL_CONTROL_DOMAINS = ALLOWED_DOMAINS - OBSERVATION_DOMAINS
+
 IDEAS = {
     'light': ('Lighting schedules', 'Consider sunset or bedtime lighting after checking existing automations.'),
     'fan': ('Comfort-based fan control', 'Consider temperature-based fan operation after verifying temperature sensors.'),
@@ -116,14 +120,25 @@ def scan(devices, entities):
         is_virtual = manufacturer.strip().casefold() in ('sense labs, inc.', 'sense labs inc.', 'sense labs') and model.strip().casefold() == 'sense'
         if is_virtual:
             virtual_count += 1
-        guide = [{'type': CAPABILITY_GUIDE[k][0], 'entities': n, 'explanation': CAPABILITY_GUIDE[k][1]}
-                 for k, n in sorted(counts.items())]
+        guide = [{
+            'type': CAPABILITY_GUIDE[k][0],
+            'domain': k,
+            'entities': n,
+            'explanation': CAPABILITY_GUIDE[k][1],
+            'access': 'Information only' if k in OBSERVATION_DOMAINS else 'Potential control',
+            'verification': ('Read-only state/measurement category.'
+                             if k in OBSERVATION_DOMAINS else
+                             'Entity category suggests a possible control. Actual services, permissions, '
+                             'supported features and device state have not been checked.'),
+        } for k, n in sorted(counts.items())]
         ideas = [{'title': IDEAS[k][0], 'description': IDEAS[k][1]}
                  for k in ('light','fan','climate','vacuum','lawn_mower','cover','humidifier','media_player','switch','sensor')
                  if k in counts][:2]
         visible[device_id] = {
             'name': name[:90], 'manufacturer': manufacturer[:75], 'model': model[:75],
             'capabilities': guide, 'entity_count': len(domains), 'ideas': ideas,
+            'observable_categories': sum(1 for k in counts if k in OBSERVATION_DOMAINS),
+            'potential_control_categories': sum(1 for k in counts if k in POTENTIAL_CONTROL_DOMAINS),
             'kind': 'Energy-monitor detection' if is_virtual else 'Registered device',
             'virtual': is_virtual,
             'parent_id': device.get('via_device_id'),
@@ -138,12 +153,12 @@ def scan(devices, entities):
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.3.0', 'mode': 'read-only',
+        'version': '0.4.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
         'devices': result[:500],
-        'note': 'Suggestions are examples only; device commands and current automations have not been verified.'
+        'note': 'Potential control does not establish an executable command. Whether a feature requires a manufacturer app cannot be determined from registry data. Suggestions are examples only; device commands and current automations have not been verified.'
     }
 
 class Handler(BaseHTTPRequestHandler):
