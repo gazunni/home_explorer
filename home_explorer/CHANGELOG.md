@@ -1,4 +1,7 @@
 ## [0.11.0] — Development candidate
+- Touch-friendly tap-to-connect and desktop drag/drop mapper for upstream smart outlets.
+- Confirmed relationships are stored in add-on /data, not in the public repository.
+- Strictly scoped relationship writes; Home Assistant access remains read-only.
 - Separate device reading health from electrical supply and actual operation.
 - Per-device counts of reporting, unavailable, and unknown entities; never infer a device fault from one sensor.
 - Optional explicit, local upstream outlet dependency mapping; supply states are displayed separately from appliance health.\n- No automatic wiring inference or scheduled-off classification. Relationships must be manually confirmed.
