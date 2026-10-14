@@ -5,21 +5,21 @@ from server import scan, referenced_devices, automation_links, registry_request,
 
 class ScanTests(unittest.TestCase):
     def test_confirmed_outlet_off_is_not_appliance_failure(self):
-        x = power_dependency('Coldroom Dehumidifier',
-                             {'switch.cold_room_dehumidifier':'off'},
-                             {'Coldroom Dehumidifier':'switch.cold_room_dehumidifier'})
+        x = power_dependency('Sample Appliance',
+                             {'switch.sample_outlet':'off'},
+                             {'Sample Appliance':'switch.sample_outlet'})
         self.assertEqual(x['supply_state'],'off')
-        self.assertNotIn('switch.cold_room_dehumidifier',str(x))
+        self.assertNotIn('switch.sample_outlet',str(x))
         self.assertIn('may be unavailable',x['interpretation'])
     def test_confirmed_outlet_on_does_not_imply_operation(self):
-        x = power_dependency('Coldroom Dehumidifier',
-                             {'switch.cold_room_dehumidifier':'on'},
-                             {'Coldroom Dehumidifier':'switch.cold_room_dehumidifier'})
+        x = power_dependency('Sample Appliance',
+                             {'switch.sample_outlet':'on'},
+                             {'Sample Appliance':'switch.sample_outlet'})
         self.assertIn('does not prove',x['interpretation'])
     def test_no_inferred_wiring_for_other_devices(self):
         self.assertIsNone(power_dependency('Another Dehumidifier',
-                          {'switch.cold_room_dehumidifier':'off'},
-                          {'Coldroom Dehumidifier':'switch.cold_room_dehumidifier'}))
+                          {'switch.sample_outlet':'off'},
+                          {'Sample Appliance':'switch.sample_outlet'}))
     def test_save_reload_local_mapping(self):
         import tempfile
         from pathlib import Path
