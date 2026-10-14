@@ -1,9 +1,16 @@
 import unittest
 import json
 from unittest.mock import patch
-from server import scan, referenced_devices, automation_links, registry_request
+from server import scan, referenced_devices, automation_links, registry_request, device_diagnostics
 
 class ScanTests(unittest.TestCase):
+    def test_mixed_sensor_availability_is_not_device_failure(self):
+        data = [{'state':'on'},{'state':'unavailable'},{'state':'unknown'}]
+        self.assertEqual(device_diagnostics(data), {
+            'status':'Partially available','available':1,'unavailable':1,'unknown':1})
+    def test_all_unavailable_not_assumed_scheduled_off(self):
+        self.assertEqual(device_diagnostics([{'state':'unavailable'}])['status'],
+                         'Readings unavailable')
     def one(self, domain):
         return scan([{'id':'d1','name':'Living Room Device','manufacturer':'Example','model':'M1'}],
                     [{'device_id':'d1','entity_id':domain+'.test'}])['devices'][0]
