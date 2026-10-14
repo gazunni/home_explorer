@@ -114,6 +114,12 @@ function render() {
         detail.append(elem('summary', 'Technical details'));
         detail.append(elem('code', member.entity_id, 'entity-id'));
         detail.append(elem('p', 'Raw state: ' + String(member.state), 'raw-state'));
+        if (Number.isInteger(member.supported_features))
+          detail.append(elem('p', 'Reported supported-features bitmask: ' + member.supported_features + ' (not service-tested)', 'feature-flags'));
+        if (Array.isArray(member.options) && member.options.length)
+          detail.append(elem('p', 'Reported options: ' + member.options.join(', '), 'reported-options'));
+        if (Array.isArray(cap.domain_services) && cap.domain_services.length)
+          detail.append(elem('p', 'Domain-wide service catalogue: ' + cap.domain_services.join(', ') + '. These are not verified for this specific entity.', 'listed-services'));
         detail.append(elem('p', capabilityNote(member.domain || cap.domain), 'service-note'));
         detail.append(elem('p', 'No services have been invoked or tested. Actual control availability depends on the integration, entity and permissions.', 'service-warning'));
         entry.append(detail);
@@ -154,6 +160,12 @@ get('scan').addEventListener('click', async () => {
     if (data.error) throw new Error(data.error);
     if (!Array.isArray(data.devices)) throw new Error('Invalid response');
     devices = data.devices;
+    if (data.automations && get('automation-status')) {
+      const a = data.automations;
+      get('automation-status').textContent = 'Existing automations: ' + a.total + ' detected · ' + a.enabled +
+        ' enabled · ' + a.disabled + ' disabled · ' + a.other +
+        ' other. Names, rules and device relationships were not examined.';
+    }
     openRows.clear();
     get('registered').textContent = String(data.registered_devices);
     get('shown').textContent = String(data.displayed_devices);
