@@ -1,7 +1,7 @@
 import unittest
 import json
 from unittest.mock import patch
-from server import scan, referenced_devices, automation_links, registry_request, device_diagnostics, power_dependency, load_power_dependencies
+from server import scan, referenced_devices, automation_links, registry_request, device_diagnostics, power_dependency, load_power_dependencies, save_power_dependencies
 
 class ScanTests(unittest.TestCase):
     def test_confirmed_outlet_off_is_not_appliance_failure(self):
@@ -20,6 +20,19 @@ class ScanTests(unittest.TestCase):
         self.assertIsNone(power_dependency('Another Dehumidifier',
                           {'switch.cold_room_dehumidifier':'off'},
                           {'Coldroom Dehumidifier':'switch.cold_room_dehumidifier'}))
+    def test_save_reload_local_mapping(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'mapping.json'
+            save_power_dependencies({'Appliance':'switch.power_outlet'},path)
+            self.assertEqual(load_power_dependencies(path),{'Appliance':'switch.power_outlet'})
+    def test_reject_private_mapping(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaises(ValueError):
+                save_power_dependencies({'Appliance':'switch.secret_token'},Path(folder)/'m.json')
     def test_dependency_config_rejects_sensitive_entities(self):
         import tempfile
         from pathlib import Path
