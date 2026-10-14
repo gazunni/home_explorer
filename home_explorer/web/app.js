@@ -86,6 +86,17 @@ function render() {
     row.append(summary);
     const body = elem('div', undefined, 'device-body');
     body.append(elem('p', d.kind, 'kind'));
+    if (Array.isArray(d.summary) && d.summary.length) {
+      const glance = elem('div', undefined, 'at-a-glance');
+      glance.append(elem('h4', 'At a glance'));
+      for (const point of d.summary) {
+        const line = elem('div', undefined, 'glance-line');
+        line.append(elem('span', point.label));
+        line.append(elem('strong', readableState(point.state, point.domain)));
+        glance.append(line);
+      }
+      body.append(glance);
+    }
     if (d.related_to) body.append(elem('p', 'Part of: ' + d.related_to, 'related'));
     body.append(elem('h4', 'What Home Assistant exposes (' + d.entity_count + ')'));
     const list = elem('div', undefined, 'guide');
