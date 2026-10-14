@@ -97,6 +97,13 @@ function render() {
       }
       body.append(glance);
     }
+    if (d.diagnostics) {
+      const diag = d.diagnostics;
+      const summary = elem('p', 'Reading health: ' + diag.status + ' · ' +
+        diag.available + ' reporting · ' + diag.unavailable + ' unavailable · ' +
+        diag.unknown + ' unknown. This does not establish physical power or connectivity.', 'diagnostics');
+      body.append(summary);
+    }
     if (d.automation_links) {
       const refs = d.automation_links;
       const sum = refs.trigger + refs.condition + refs.action;
