@@ -1,4 +1,4 @@
-"""Home Explorer 0.4.0: on-demand, read-only registry exploration."""
+"""Home Explorer 0.5.0: on-demand, read-only registry exploration."""
 import json
 import os
 import re
@@ -153,7 +153,7 @@ def scan(devices, entities):
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.4.0', 'mode': 'read-only',
+        'version': '0.5.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
