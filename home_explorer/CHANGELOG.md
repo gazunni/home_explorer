@@ -1,14 +1,43 @@
-## [0.11.0] — Development candidate
+# Home Explorer — Changelog
+
+All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
+
+## [0.11.7] — 2026-10-14
+- Corrected the add-on update notes to show recent releases in order.
+- Aligned the version displayed in the web interface with the add-on version.
+
+## [0.11.6] — 2026-10-14
+- Recovered add-on startup after the 0.11.5 permission-switch regression.
+- Added a Docker container startup smoke test to CI.
+
+## [0.11.5] — 2026-10-14
+- Attempted to repair local mapping storage permissions; this introduced a startup regression, fixed in 0.11.6.
+
+## [0.11.4] — 2026-10-14
+- Added side-by-side identity details for power source and appliance.
+- Preserved mapping selections while filtering.
+
+## [0.11.3] — 2026-10-14
+- Automatic discovery on open, with a manual refresh button.
+- Natural alphabetical ordering and separate outlet/appliance search.
+- Expanded the relationship editor by default.
+
+## [0.11.2] — 2026-10-14
+- Replaced the oversized device-tile mapper with compact, searchable selectors.
+- Added confirmation and locally saved connections.
+
+## [0.11.1] — 2026-10-14
+- Improved relationship mapping layout and interaction.
+
+## [0.11.0] — 2026-10-14
 - Touch-friendly tap-to-connect and desktop drag/drop mapper for upstream smart outlets.
 - Confirmed relationships are stored in add-on /data, not in the public repository.
 - Strictly scoped relationship writes; Home Assistant access remains read-only.
 - Separate device reading health from electrical supply and actual operation.
 - Per-device counts of reporting, unavailable, and unknown entities; never infer a device fault from one sensor.
-- Optional explicit, local upstream outlet dependency mapping; supply states are displayed separately from appliance health.\n- No automatic wiring inference or scheduled-off classification. Relationships must be manually confirmed.
+- Optional explicit, local upstream outlet dependency mapping; supply states are displayed separately from appliance health.
+- No automatic wiring inference or scheduled-off classification. Relationships must be manually confirmed.
 
-# Home Explorer — Changelog
-
-All notable changes to Home Explorer are documented here. Home Explorer remains read-only; capability descriptions do not verify executable Home Assistant commands.
 
 ## [0.10.0] — Development candidate
 - Read-only exact automation-to-device reference counts, separated into triggers, conditions and actions; no automation names or raw definitions returned.
