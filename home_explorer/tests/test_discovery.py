@@ -1,22 +1,32 @@
 import unittest
 import json
 from unittest.mock import patch
-from server import scan, referenced_devices, automation_links, registry_request, device_diagnostics, power_dependency
+from server import scan, referenced_devices, automation_links, registry_request, device_diagnostics, power_dependency, load_power_dependencies
 
 class ScanTests(unittest.TestCase):
     def test_confirmed_outlet_off_is_not_appliance_failure(self):
         x = power_dependency('Coldroom Dehumidifier',
-                             {'switch.cold_room_dehumidifier':'off'})
+                             {'switch.cold_room_dehumidifier':'off'},
+                             {'Coldroom Dehumidifier':'switch.cold_room_dehumidifier'})
         self.assertEqual(x['supply_state'],'off')
         self.assertNotIn('switch.cold_room_dehumidifier',str(x))
         self.assertIn('may be unavailable',x['interpretation'])
     def test_confirmed_outlet_on_does_not_imply_operation(self):
         x = power_dependency('Coldroom Dehumidifier',
-                             {'switch.cold_room_dehumidifier':'on'})
+                             {'switch.cold_room_dehumidifier':'on'},
+                             {'Coldroom Dehumidifier':'switch.cold_room_dehumidifier'})
         self.assertIn('does not prove',x['interpretation'])
     def test_no_inferred_wiring_for_other_devices(self):
         self.assertIsNone(power_dependency('Another Dehumidifier',
-                          {'switch.cold_room_dehumidifier':'off'}))
+                          {'switch.cold_room_dehumidifier':'off'},
+                          {'Coldroom Dehumidifier':'switch.cold_room_dehumidifier'}))
+    def test_dependency_config_rejects_sensitive_entities(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'dependencies.json'
+            path.write_text('{"Fan":"switch.fan_outlet","Private":"switch.secret_token"}')
+            self.assertEqual(load_power_dependencies(path), {'Fan':'switch.fan_outlet'})
     def test_mixed_sensor_availability_is_not_device_failure(self):
         data = [{'state':'on'},{'state':'unavailable'},{'state':'unknown'}]
         self.assertEqual(device_diagnostics(data), {

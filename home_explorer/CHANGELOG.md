@@ -1,7 +1,7 @@
 ## [0.11.0] — Development candidate
 - Separate device reading health from electrical supply and actual operation.
 - Per-device counts of reporting, unavailable, and unknown entities; never infer a device fault from one sensor.
-- Dependency mapping and scheduled-off classification require explicit verified upstream relationships; not yet implemented.
+- Optional explicit, local upstream outlet dependency mapping; supply states are displayed separately from appliance health.\n- No automatic wiring inference or scheduled-off classification. Relationships must be manually confirmed.
 
 # Home Explorer — Changelog
 

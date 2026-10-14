@@ -135,28 +135,42 @@ def summarize_entities(entities):
             break
     return output
 
-# Explicit, administrator-reviewed entity relationships only. No name matching.
-# A configured upstream switch describes wiring, not an automation schedule.
-POWER_DEPENDENCIES = (
-    ('Coldroom Dehumidifier', 'switch.cold_room_dehumidifier'),
-)
+# Explicit local configuration only; never infer electrical wiring from names.
+# Edit power_dependencies.json to confirm relationships before they are displayed.
+DEPENDENCY_FILE = Path(__file__).resolve().parent / 'power_dependencies.json'
 
-def power_dependency(name, states):
-    for appliance, entity_id in POWER_DEPENDENCIES:
-        if name != appliance:
-            continue
-        state = states.get(entity_id, 'Not available')
-        if state not in ('on', 'off'):
-            state = 'Not available'
-        return {'source': 'User-confirmed', 'supply_state': state,
-                'interpretation': (
-                    'Upstream outlet is off; appliance readings may be unavailable.'
-                    if state == 'off' else
-                    'Upstream outlet is on; this does not prove appliance operation.'
-                    if state == 'on' else
-                    'Upstream outlet state could not be confirmed.'
-                )}
-    return None
+def load_power_dependencies(path=DEPENDENCY_FILE):
+    try:
+        raw = json.loads(Path(path).read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(raw, dict) or len(raw) > 100:
+        return {}
+    result = {}
+    for name, entity_id in raw.items():
+        if (isinstance(name, str) and isinstance(entity_id, str)
+                and 0 < len(name) <= 90
+                and re.fullmatch(r'switch\\.[a-z0-9_]{1,100}', entity_id)
+                and not PRIVATE_NAME.search(name + ' ' + entity_id)):
+            result[name] = entity_id
+    return result
+
+def power_dependency(name, states, dependencies=None):
+    mapping = load_power_dependencies() if dependencies is None else dependencies
+    entity_id = mapping.get(name)
+    if not entity_id:
+        return None
+    state = states.get(entity_id, 'Not available')
+    if state not in ('on', 'off'):
+        state = 'Not available'
+    return {'source': 'Explicitly configured', 'supply_state': state,
+            'interpretation': (
+                'Upstream outlet is off; appliance readings may be unavailable.'
+                if state == 'off' else
+                'Upstream outlet is on; this does not prove appliance operation.'
+                if state == 'on' else
+                'Upstream outlet state could not be confirmed.'
+            )}
 
 def device_diagnostics(entities):
     """Evidence summary, not an assertion of connectivity or scheduled intent."""
