@@ -88,6 +88,11 @@ function render() {
     const counts = elem('span', undefined, 'row-counts');
     if (d.observable_categories) counts.append(elem('span', d.observable_categories + ' info', 'access-info'));
     if (d.potential_control_categories) counts.append(elem('span', d.potential_control_categories + ' possible controls', 'access-possible'));
+    if (d.power_dependency) {
+      const power = d.power_dependency.supply_state;
+      const label = power === 'off' ? 'Upstream off' : power === 'on' ? 'Upstream on' : 'Power unknown';
+      counts.append(elem('span', label, 'access-info'));
+    }
     summary.append(counts);
     summary.append(elem('span', undefined, 'chevron'));
     row.append(summary);
@@ -110,6 +115,17 @@ function render() {
       panel.append(elem('h4', 'Confirmed upstream power supply'));
       panel.append(elem('p', 'Outlet: ' + readableState(supply.supply_state, 'switch')));
       panel.append(elem('p', supply.interpretation));
+      if (d.diagnostics) {
+        const readings = d.diagnostics;
+        let assessment = 'Power source state and device readings are separate observations.';
+        if (supply.supply_state === 'off' && readings.unavailable)
+          assessment = 'Upstream power is off and some appliance readings are unavailable. This is consistent with lost power, but is not proof of the cause.';
+        else if (supply.supply_state === 'on' && readings.available)
+          assessment = 'Upstream power is on and the appliance reports readings. This does not confirm that the appliance is actively operating.';
+        else if (supply.supply_state === 'on' && readings.unavailable)
+          assessment = 'Upstream power is on but some appliance readings are unavailable. Check connectivity and integration status before diagnosing a fault.';
+        panel.append(elem('p', assessment, 'diagnostics'));
+      }
       panel.append(elem('small', 'Relationship confirmed by homeowner. This does not verify an automation schedule or device health.'));
       body.append(panel);
     }
