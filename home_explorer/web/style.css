@@ -23,3 +23,10 @@
 .device-body .feature{padding:8px 0;border-bottom:1px solid #293f54}
 .device-body .hint{margin-bottom:0}
 @media(max-width:620px){.device-summary{padding:11px 12px;gap:8px}.row-counts{max-width:42%}.row-counts span{font-size:10px}.row-meta{font-size:11px}.device-title strong{font-size:14px}}
+
+.entity-members{margin:8px 0;display:flex;flex-direction:column;gap:5px}
+.entity-member{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;padding:8px;border:1px solid #31475b;border-radius:7px;background:#102032}
+.entity-identity{display:flex;flex-direction:column;gap:3px;min-width:0}
+.entity-id{font-size:12px;color:#aec3d7;overflow-wrap:anywhere}
+.entity-state{font-size:12px;color:#aee0d1}
+.disclaimer{font-size:13px;margin:10px 0}.disclaimer summary{cursor:pointer;color:#a6dcd2}
