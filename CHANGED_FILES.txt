@@ -1,0 +1,3 @@
+Home Explorer v0.1.0 initial commit: repository.yaml, README.md, DEPLOYED.md, CHANGED_FILES.txt, PROJECT_TREE.txt, .env.example, home_explorer/config.yaml, home_explorer/Dockerfile, home_explorer/server.py, home_explorer/web/index.html, home_explorer/web/style.css, home_explorer/web/app.js
+.env.example: new, no secrets required
+Manual deletions: NONE
