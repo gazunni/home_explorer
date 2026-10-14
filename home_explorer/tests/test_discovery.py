@@ -1,10 +1,45 @@
 import unittest
-from server import scan
+from server import scan, referenced_devices, automation_links
 
 class ScanTests(unittest.TestCase):
     def one(self, domain):
         return scan([{'id':'d1','name':'Living Room Device','manufacturer':'Example','model':'M1'}],
                     [{'device_id':'d1','entity_id':domain+'.test'}])['devices'][0]
+    def test_structured_automation_relations(self):
+        config={'triggers':[{'trigger':'state','entity_id':'sensor.fan_temperature'}],
+                'conditions':[{'condition':'state','entity_id':'switch.fan'}],
+                'actions':[{'action':'switch.turn_on','target':{'entity_id':'switch.fan'}}]}
+        mapping={'sensor.fan_temperature':'dev1','switch.fan':'dev1'}
+        self.assertEqual(referenced_devices(config,mapping),
+                         {('dev1','trigger'),('dev1','condition'),('dev1','action')})
+        links=automation_links([config],mapping)
+        self.assertEqual(links['dev1'],{'trigger':1,'condition':1,'action':1})
+    def test_templates_and_arbitrary_text_not_matched(self):
+        config={'triggers':[{'value_template':'sensor.fan_temperature'}],
+                'actions':[{'data':{'message':'switch.fan'}},
+                           {'target':{'entity_id':'{{ states.sensor.secret }}'}}]}
+        self.assertEqual(referenced_devices(config,{'sensor.fan_temperature':'x','switch.fan':'x'}),set())
+    def test_related_counts_only_no_private_config_leak(self):
+        config={'alias':'secret family alarm',
+                'triggers':[{'entity_id':'sensor.temp'}],
+                'actions':[{'target':{'device_id':'d1'}}]}
+        result=scan([{'id':'d1','name':'Fan'}],
+                    [{'device_id':'d1','entity_id':'sensor.temp'}],configurations=[config],attempted=1)
+        self.assertEqual(result['devices'][0]['automation_links']['action'],1)
+        self.assertEqual(result['automations']['configurations_checked'],1)
+        self.assertNotIn('secret family alarm',str(result))
+        self.assertNotIn('d1',str(result))
+    def test_sensitive_entity_not_linked_to_automation(self):
+        config={'actions':[{'target':{'entity_id':'switch.secret_device'}}]}
+        result=scan([{'id':'d1','name':'Fan'}],
+                    [{'device_id':'d1','entity_id':'switch.secret_device'},
+                     {'device_id':'d1','entity_id':'sensor.fan_temperature'}],
+                    configurations=[config],attempted=1)
+        self.assertEqual(result['devices'][0]['automation_links']['action'],0)
+    def test_missing_configurations_not_falsely_reported_complete(self):
+        result=scan([],[],configurations=[],attempted=15)
+        self.assertEqual(result['automations']['configurations_checked'],0)
+        self.assertEqual(result['automations']['lookup_attempted'],15)
     def test_service_catalog_is_domain_wide_only(self):
         x = scan([{'id':'d1','name':'Lamp'}],
                  [{'device_id':'d1','entity_id':'light.desk'}],
