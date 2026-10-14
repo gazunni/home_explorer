@@ -48,24 +48,24 @@ def registry_request():
         response = json.loads(ws.recv(timeout=15))
         services = response.get('result', {}) if response.get('id') == 4 and response.get('success') else {}
         configurations = []
-        keys = []
-        for state in result[2]:
-            if not isinstance(state, dict) or not str(state.get('entity_id', '')).startswith('automation.'):
-                continue
-            attrs = state.get('attributes')
-            key = attrs.get('id') if isinstance(attrs, dict) else None
-            if isinstance(key, str) and re.fullmatch(r'[a-zA-Z0-9_-]{1,80}', key):
-                keys.append(key)
-        keys = list(dict.fromkeys(keys))[:100]
-        for offset, key in enumerate(keys, 5):
+        candidates = [state['entity_id'] for state in result[2]
+                      if isinstance(state, dict) and isinstance(state.get('entity_id'), str)
+                      and state['entity_id'].startswith('automation.')]
+        candidates = list(dict.fromkeys(candidates))[:100]
+        for offset, entity_id in enumerate(candidates, 5):
             try:
-                ws.send(json.dumps({'id': offset, 'type': 'automation/config', 'automation_id': key}))
+                ws.send(json.dumps({'id': offset, 'type': 'automation/config',
+                                    'entity_id': entity_id}))
                 reply = json.loads(ws.recv(timeout=3))
-                if reply.get('id') == offset and reply.get('success') and isinstance(reply.get('result'), dict):
-                    configurations.append(reply['result'])
+                payload = reply.get('result')
+                if (reply.get('id') == offset and reply.get('success')
+                        and isinstance(payload, dict)
+                        and isinstance(payload.get('config'), dict)):
+                    configurations.append(payload['config'])
             except (TimeoutError, OSError, ValueError):
                 break
-        return (*result, services if isinstance(services, dict) else {}, configurations, len(keys))
+        return (*result, services if isinstance(services, dict) else {},
+                configurations, len(candidates))
 
 # Descriptions are grounded only in domain semantics, never inferred vendor commands.
 CAPABILITY_GUIDE = {
