@@ -1,37 +1,54 @@
 'use strict';
-const $ = id => document.getElementById(id);
-function el(tag, content, className) {
-  const node = document.createElement(tag);
-  if (content !== undefined) node.textContent = content;
-  if (className) node.className = className;
-  return node;
+const get = id => document.getElementById(id);
+let devices = [];
+function elem(tag, value, className) {
+  const e = document.createElement(tag);
+  if (value !== undefined) e.textContent = value;
+  if (className) e.className = className;
+  return e;
 }
-$('scan').addEventListener('click', async () => {
-  $('scan').disabled = true;
-  $('status').textContent = 'Reading Home Assistant entity categories locally…';
-  $('result').replaceChildren();
-  $('stats').hidden = true;
+function render() {
+  const term = get('search').value.trim().toLowerCase();
+  const matched = devices.filter(d =>
+    (d.name + ' ' + d.manufacturer + ' ' + d.model).toLowerCase().includes(term));
+  get('devices').replaceChildren();
+  get('count').textContent = matched.length + ' devices shown';
+  for (const d of matched) {
+    const card = elem('article', undefined, 'device');
+    card.append(elem('h3', d.name));
+    card.append(elem('p', d.manufacturer + ' · ' + d.model, 'meta'));
+    const caps = elem('div', undefined, 'caps');
+    for (const c of d.capabilities) {
+      caps.append(elem('span', c.type + ' (' + c.entities + ')', 'cap'));
+    }
+    card.append(caps);
+    card.append(elem('p', 'Exposed entity categories; detailed actions require verification.', 'fine'));
+    get('devices').append(card);
+  }
+}
+get('search').addEventListener('input', render);
+get('scan').addEventListener('click', async () => {
+  get('scan').disabled = true;
+  get('status').textContent = 'Reading registries through the local Home Assistant connection…';
   try {
-    const base = location.href.split('?')[0].replace(/\/?$/, '/');
-    const response = await fetch(new URL('api/inventory', base), {
+    const root = location.href.split('?')[0].replace(/\/?$/, '/');
+    const response = await fetch(new URL('api/devices', root), {
       credentials: 'same-origin', cache: 'no-store'
     });
-    if (!response.ok) throw new Error('Inventory unavailable (HTTP ' + response.status + ')');
+    if (!response.ok) throw new Error('Registry request failed (HTTP ' + response.status + ')');
     const data = await response.json();
     if (data.error) throw new Error(data.error);
-    $('entities').textContent = String(data.total_visible_entities);
-    $('groups').textContent = String(data.groups.length);
-    $('stats').hidden = false;
-    for (const group of data.groups) {
-      const card = el('article', undefined, 'card');
-      card.append(el('h3', group.domain), el('div', group.count + ' entities', 'count'));
-      card.append(el('p', 'Available entity category; device-level capabilities need verification.'));
-      $('result').append(card);
-    }
-    $('status').textContent = 'Inventory loaded. No devices or automations were changed.';
-  } catch (err) {
-    $('status').textContent = 'Scan failed: ' + err.message;
+    devices = data.devices;
+    get('registered').textContent = String(data.registered_devices);
+    get('shown').textContent = String(data.displayed_devices);
+    get('stats').hidden = false;
+    get('search').disabled = false;
+    get('status').textContent = 'Discovery completed. ' + data.hidden_private_devices +
+      ' private-name devices filtered. No devices or automations were changed.';
+    render();
+  } catch (error) {
+    get('status').textContent = 'Scan not available: ' + error.message;
   } finally {
-    $('scan').disabled = false;
+    get('scan').disabled = false;
   }
 });
