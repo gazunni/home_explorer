@@ -24,3 +24,6 @@ Run `python -m unittest discover -s home_explorer/tests` with the `home_explorer
 
 ## v0.5.0 — Compact device rows
 The device grid has been replaced with a single-column list. Tap a device row or the right-side chevron to expand its capabilities, parent relationship, explanations and suggested uses. Multiple devices may be open simultaneously. Search and device-type filtering remain intact. Expansion state is retained while filtering and reset on a fresh scan. All operations remain read-only.
+
+## v0.6.0
+Expanded devices list their registered Home Assistant entities and latest states (read-only). Entity names receive sensitive-name filtering; service execution remains unsupported.
