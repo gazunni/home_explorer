@@ -1,10 +1,7 @@
-# Home Explorer v0.3.0 — repository setup
+# Home Explorer v0.4.0 — GitHub update
+GitHub source: https://github.com/gazunni/home_explorer
+Home Assistant Green app slug: 222fed32_home_explorer (verified on the user's Green on 2026-10-14).
 
-This public repository can be added to Home Assistant's app store:
-Settings > Apps > Install app > ⋮ > Repositories
-https://github.com/gazunni/home_explorer
+Settings → Apps → Home Explorer → Update when offered. To check for updates, refresh app repositories from the App Store menu if needed.
 
-**Do not install/migrate yet without checking the separate local installation.**
-The working Green app is installed as local_home_explorer under /local_apps/home_explorer; the repository installation has a different Supervisor slug. Adding the repository does not automatically convert the existing installation. Keep the existing v0.3.0 app working and retain the v0.2.0 rollback backup while evaluating migration.
-
-See REPOSITORY_UPDATES.md for the detailed update workflow. Auto update should remain off until migration and shutdown behavior are verified.
+Do not install a second app or copy ZIPs into /local_apps. Do not enable automatic application upgrades until shutdown behaviour (historical exit code 137 after manual stopping) is investigated. Preserve /share/home_explorer_v030_backup.
