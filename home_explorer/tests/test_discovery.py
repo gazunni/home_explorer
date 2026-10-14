@@ -25,6 +25,18 @@ class ScanTests(unittest.TestCase):
                [{'device_id':'abcPRIVATE','entity_id':'light.secret_identifier'}])
         self.assertNotIn('abcPRIVATE',str(x))
         self.assertNotIn('secret_identifier',str(x))
+    def test_members_include_entity_domain_and_state(self):
+        item = scan([{'id':'d1','name':'Dryer'}],
+                    [{'device_id':'d1','entity_id':'sensor.dryer_current_status'}],
+                    [{'entity_id':'sensor.dryer_current_status','state':'power_off'}])['devices'][0]
+        member = item['capabilities'][0]['members'][0]
+        self.assertEqual(member['domain'], 'sensor')
+        self.assertEqual(member['state'], 'power_off')
+    def test_state_does_not_override_private_entity_redaction(self):
+        result = scan([{'id':'d1','name':'Lamp'}],
+                      [{'device_id':'d1','entity_id':'light.secret_identifier'}],
+                      [{'entity_id':'light.secret_identifier','state':'on'}])
+        self.assertEqual(result['displayed_devices'], 0)
     def test_sensitive_name(self):
         x=scan([{'id':'1','name':'Front Door Lock'}],
                [{'device_id':'1','entity_id':'sensor.battery'}])
