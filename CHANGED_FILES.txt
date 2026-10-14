@@ -1,9 +1,10 @@
-Home Explorer v0.5.0
-home_explorer/web/app.js
-home_explorer/web/style.css
-home_explorer/web/index.html
-home_explorer/config.yaml
+v0.6.0 changes:
 home_explorer/server.py
+home_explorer/web/app.js
+home_explorer/web/index.html
+home_explorer/web/style.css
+home_explorer/config.yaml
+home_explorer/CHANGELOG.md
 README.md
 DEPLOYED.md
 CHANGED_FILES.txt
