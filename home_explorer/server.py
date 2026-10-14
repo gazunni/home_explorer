@@ -47,7 +47,25 @@ def registry_request():
         ws.send(json.dumps({'id': 4, 'type': 'get_services'}))
         response = json.loads(ws.recv(timeout=15))
         services = response.get('result', {}) if response.get('id') == 4 and response.get('success') else {}
-        return (*result, services if isinstance(services, dict) else {})
+        configurations = []
+        keys = []
+        for state in result[2]:
+            if not isinstance(state, dict) or not str(state.get('entity_id', '')).startswith('automation.'):
+                continue
+            attrs = state.get('attributes')
+            key = attrs.get('id') if isinstance(attrs, dict) else None
+            if isinstance(key, str) and re.fullmatch(r'[a-zA-Z0-9_-]{1,80}', key):
+                keys.append(key)
+        keys = list(dict.fromkeys(keys))[:100]
+        for offset, key in enumerate(keys, 5):
+            try:
+                ws.send(json.dumps({'id': offset, 'type': 'automation/config', 'automation_id': key}))
+                reply = json.loads(ws.recv(timeout=3))
+                if reply.get('id') == offset and reply.get('success') and isinstance(reply.get('result'), dict):
+                    configurations.append(reply['result'])
+            except (TimeoutError, OSError, ValueError):
+                break
+        return (*result, services if isinstance(services, dict) else {}, configurations, len(keys))
 
 # Descriptions are grounded only in domain semantics, never inferred vendor commands.
 CAPABILITY_GUIDE = {
@@ -127,10 +145,49 @@ def automation_counts(states):
             'disabled': counts.get('off', 0),
             'other': len(rows)-counts.get('on', 0)-counts.get('off', 0)}
 
-def scan(devices, entities, states=None, services=None):
+def referenced_devices(config, device_entities):
+    """Only exact references from known structured fields; ignore templates/text."""
+    matches = set()
+    if not isinstance(config, dict):
+        return matches
+    for plural, singular, kind in (('triggers','trigger','trigger'),
+                                  ('conditions','condition','condition'),
+                                  ('actions','action','action')):
+        roots = config.get(plural, config.get(singular))
+        stack = [(roots, 0)]
+        examined = 0
+        while stack and examined < 600:
+            node, depth = stack.pop()
+            examined += 1
+            if depth > 12:
+                continue
+            if isinstance(node, list):
+                stack.extend((v,depth+1) for v in node[:100])
+            elif isinstance(node, dict):
+                for field, value in node.items():
+                    if field in ('entity_id', 'device_id'):
+                        refs = value if isinstance(value, list) else [value]
+                        for ref in refs[:100]:
+                            if isinstance(ref, str) and ref in device_entities:
+                                matches.add((device_entities[ref], kind))
+                    elif field in ('trigger','condition','action','actions','conditions',
+                                   'triggers','sequence','choose','default','then',
+                                   'else','repeat','parallel','target'):
+                        stack.append((value,depth+1))
+    return matches
+
+def automation_links(configurations, device_entities):
+    links = defaultdict(lambda: {'trigger':0,'condition':0,'action':0})
+    for config in (configurations or [])[:100]:
+        for device_id, relation in referenced_devices(config,device_entities):
+            links[device_id][relation] += 1
+    return links
+
+def scan(devices, entities, states=None, services=None, configurations=None, attempted=0):
     if len(devices) > MAX_DEVICES or len(entities) > MAX_ENTITIES:
         raise RuntimeError('Registry exceeds safety limit')
     by_device = defaultdict(list)
+    entity_devices = {}
     states = states or []
     catalog = {}
     if isinstance(services, dict):
@@ -173,9 +230,11 @@ def scan(devices, entities, states=None, services=None):
         if not isinstance(label, str) or PRIVATE_NAME.search(entity_id + ' ' + label):
             continue
         if domain in ALLOWED_DOMAINS and entity.get('disabled_by') is None:
+            entity_devices[entity_id] = dev
             by_device[dev].append({'domain': domain, 'entity_id': entity_id,
                                    'label': label[:90], 'state': safe_states.get(entity_id, 'Not available'),
                                    'metadata': metadata.get(entity_id, {})})
+    associations = automation_links(configurations, entity_devices)
     # Internal registry keys are used only for grouping and are NEVER returned to the browser.
     lookup = {d['id']: d for d in devices if isinstance(d, dict) and isinstance(d.get('id'), str)}
     visible = {}
@@ -223,6 +282,7 @@ def scan(devices, entities, states=None, services=None):
             'name': name[:90], 'manufacturer': manufacturer[:75], 'model': model[:75],
             'capabilities': guide, 'entity_count': len(domains), 'ideas': ideas,
             'summary': summarize_entities(domains),
+            'automation_links': dict(associations.get(device_id, {'trigger':0,'condition':0,'action':0})),
             'observable_categories': sum(1 for k in counts if k in OBSERVATION_DOMAINS),
             'potential_control_categories': sum(1 for k in counts if k in POTENTIAL_CONTROL_DOMAINS),
             'kind': 'Energy-monitor detection' if is_virtual else 'Registered device',
@@ -239,11 +299,11 @@ def scan(devices, entities, states=None, services=None):
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.8.0', 'mode': 'read-only',
+        'version': '0.10.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
-        'automations': automation_counts(states),
+        'automations': {**automation_counts(states), 'configurations_checked': len(configurations or []), 'lookup_attempted': attempted},
         'devices': result[:500],
         'note': 'Potential control does not establish an executable command. Whether a feature requires a manufacturer app cannot be determined from registry data. Suggestions are examples only; device commands and current automations have not been verified.'
     }
