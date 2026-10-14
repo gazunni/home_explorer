@@ -30,3 +30,16 @@
 .entity-id{font-size:12px;color:#aec3d7;overflow-wrap:anywhere}
 .entity-state{font-size:12px;color:#aee0d1}
 .disclaimer{font-size:13px;margin:10px 0}.disclaimer summary{cursor:pointer;color:#a6dcd2}
+
+/* v0.7.0 — current states first, technical IDs available on demand */
+.capability-group{border-top:1px solid #32485e;padding:8px 0 4px}
+.capability-group h4{margin:7px 0 9px;font-size:14px}
+.entity-member{display:block;margin:6px 0;background:#102235}
+.entity-identity{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.friendly-state{color:#a8e3d8;font-weight:600;font-size:13px}
+.technical-details{width:100%;padding:6px 0 0;font-size:12px}
+.technical-details summary{color:#95b6d1;cursor:pointer;width:max-content;max-width:100%;font-size:12px}
+.technical-details[open]{padding-bottom:6px}
+.technical-details code{display:block;padding:7px 0;color:#b6c9d9;overflow-wrap:anywhere}
+.technical-details p{margin:5px 0;color:#a8b8cb}
+.technical-details .service-warning{font-style:italic}

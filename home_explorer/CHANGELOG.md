@@ -2,6 +2,17 @@
 
 All notable changes to Home Explorer are documented here. Home Explorer remains read-only; capability descriptions do not verify executable Home Assistant commands.
 
+## [0.7.0] — 2026-10-14
+### Changed
+- Display readable interpretations of common Home Assistant states.
+- Place raw entity IDs, raw states and control descriptions inside expandable technical details.
+- Reduce repeated generic capability text in expanded device rows.
+### Clarified
+- Potential service families are described from entity domains only; no commands or permissions have been verified.
+- Unknown and unavailable readings remain distinctly identified.
+### Added
+- Regression tests for entity-domain metadata, state values and sensitive entity filtering.
+
 ## [0.6.0] — 2026-10-14
 ### Added
 - Actual entity names, IDs and latest read-only state values under each device capability group.

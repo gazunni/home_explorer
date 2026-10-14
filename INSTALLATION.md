@@ -1,13 +1,11 @@
-# Home Explorer v0.6.0
+# Home Explorer v0.7.0
 
-Source: https://github.com/gazunni/home_explorer
+Repository: https://github.com/gazunni/home_explorer
 
-1. In Home Assistant Terminal run `ha store reload` to refresh the GitHub repository if the new version is not yet offered.
-2. Settings → Apps → GitHub-managed Home Explorer → Update to 0.6.0. Keep backup option enabled.
-3. Verify state Running, Open Web UI, Explore my devices, and confirm rows expand and collapse using the chevrons.
-4. Test device-only and energy-monitor filters; test search with multiple expanded rows.
-5. Keep Auto update disabled during active development.
+1. Open Settings → Apps → GitHub-managed Home Explorer.
+2. Refresh repository using `ha store reload` if the new version is not shown.
+3. Update to v0.7.0, retaining a backup.
+4. Expand Dryer and confirm descriptive states, with raw entity IDs/states under Technical details.
+5. Verify search and Sense filters work; check Supervisor logs and GitHub Actions.
 
-Do not reinstall the removed local app. Existing backup files under /share remain unchanged.
-
-Verify the expanded device entities and displayed states. No device commands are executed.
+No device commands are executed. Generic control descriptions do not prove command availability.

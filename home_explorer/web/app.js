@@ -8,6 +8,55 @@ function elem(tag, text, className) {
   if (className) node.className = className;
   return node;
 }
+
+/* Display-only interpretations; do not infer verified capabilities or commands. */
+function readableState(raw, domain) {
+  if (raw === null || raw === undefined || raw === '') return 'No reading';
+  const value = String(raw).trim();
+  if (value === 'unknown') return 'Unknown (Home Assistant has no current reading)';
+  if (value === 'unavailable') return 'Unavailable (Home Assistant cannot currently report it)';
+  if (value === 'Not available') return 'No current reading';
+  if (value === 'power_off') return 'Powered off';
+  if (value === 'idle') return 'Idle';
+  if (value === 'paused') return 'Paused';
+  if (value === 'playing') return 'Playing';
+  if (value === 'standby') return 'Standby';
+  if (value === 'heating') return 'Heating';
+  if (value === 'cooling') return 'Cooling';
+  if (value === 'cleaning') return 'Cleaning';
+  if (value === 'docked') return 'Docked';
+  if (value === 'on') {
+    if (domain === 'binary_sensor') return 'Detected / active';
+    return 'On';
+  }
+  if (value === 'off') {
+    if (domain === 'binary_sensor') return 'Clear / inactive';
+    return 'Off';
+  }
+  // Never interpret numeric values without units, or arbitrary vendor states.
+  return value.replace(/_/g, ' ');
+}
+function capabilityNote(domain) {
+  const descriptions = {
+    light: 'A light entity may support on/off, brightness, or colour depending on integration support.',
+    switch: 'A switch entity may expose on/off services; it may represent a setting rather than physical power.',
+    select: 'A select entity may expose available options and selection services.',
+    number: 'A number entity may expose a numeric setting with configured bounds.',
+    fan: 'A fan entity may expose on/off and supported speed settings.',
+    climate: 'A climate entity may expose modes, setpoints and HVAC services.',
+    humidifier: 'A humidifier entity may expose humidity targets and on/off services.',
+    cover: 'A cover entity may expose open/close or position controls.',
+    media_player: 'A media player may expose playback or volume services.',
+    vacuum: 'A vacuum entity may expose cleaning or return-to-base services.',
+    lawn_mower: 'A lawn mower entity may expose mowing actions.',
+    remote: 'A remote entity may expose a command service.',
+    button: 'A button entity may expose a press service.',
+    sensor: 'An observation only; no control service is implied.',
+    binary_sensor: 'An observation only; on/off indicates a reported condition, not a control.'
+  };
+  return descriptions[domain] || 'Available commands for this entity have not been verified.';
+}
+
 function render() {
   const term = get('search').value.trim().toLocaleLowerCase();
   const kind = get('kind').value;
@@ -41,24 +90,26 @@ function render() {
     body.append(elem('h4', 'What Home Assistant exposes (' + d.entity_count + ')'));
     const list = elem('div', undefined, 'guide');
     for (const cap of d.capabilities) {
-      const item = elem('div', undefined, 'feature');
-      item.append(elem('strong', cap.type + ' · ' + cap.entities + ' · ' + cap.access));
-      item.append(elem('p', cap.explanation));
-      item.append(elem('p', cap.verification, 'verification'));
-      if (Array.isArray(cap.members)) {
-        const members = elem('div', undefined, 'entity-members');
-        for (const member of cap.members) {
-          const entry = elem('div', undefined, 'entity-member');
-          const identity = elem('span', undefined, 'entity-identity');
-          identity.append(elem('strong', member.name));
-          identity.append(elem('code', member.entity_id, 'entity-id'));
-          entry.append(identity);
-          entry.append(elem('span', 'State: ' + member.state, 'entity-state'));
-          members.append(entry);
-        }
-        item.append(members);
+      const section = elem('section', undefined, 'capability-group');
+      section.append(elem('h4', cap.type + ' · ' + cap.entities + ' · ' + cap.access));
+      const members = elem('div', undefined, 'entity-members');
+      for (const member of (cap.members || [])) {
+        const entry = elem('div', undefined, 'entity-member');
+        const identity = elem('span', undefined, 'entity-identity');
+        identity.append(elem('strong', member.name));
+        identity.append(elem('span', readableState(member.state, member.domain || cap.domain), 'friendly-state'));
+        entry.append(identity);
+        const detail = elem('details', undefined, 'technical-details');
+        detail.append(elem('summary', 'Technical details'));
+        detail.append(elem('code', member.entity_id, 'entity-id'));
+        detail.append(elem('p', 'Raw state: ' + String(member.state), 'raw-state'));
+        detail.append(elem('p', capabilityNote(member.domain || cap.domain), 'service-note'));
+        detail.append(elem('p', 'No services have been invoked or tested. Actual control availability depends on the integration, entity and permissions.', 'service-warning'));
+        entry.append(detail);
+        members.append(entry);
       }
-      list.append(item);
+      section.append(members);
+      list.append(section);
     }
     body.append(list);
     if (d.virtual) {
