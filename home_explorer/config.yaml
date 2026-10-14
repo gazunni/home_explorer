@@ -15,3 +15,5 @@ homeassistant_api: true
 hassio_role: default
 host_network: false
 protected: true
+stage: experimental
+panel_admin: true
