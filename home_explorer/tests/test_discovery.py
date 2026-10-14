@@ -5,6 +5,23 @@ class ScanTests(unittest.TestCase):
     def one(self, domain):
         return scan([{'id':'d1','name':'Living Room Device','manufacturer':'Example','model':'M1'}],
                     [{'device_id':'d1','entity_id':domain+'.test'}])['devices'][0]
+    def test_service_catalog_is_domain_wide_only(self):
+        x = scan([{'id':'d1','name':'Lamp'}],
+                 [{'device_id':'d1','entity_id':'light.desk'}],
+                 [{'entity_id':'light.desk','state':'on','attributes':{'supported_features':5}}],
+                 {'light':{'turn_on':{},'turn_off':{}}})['devices'][0]
+        self.assertEqual(x['capabilities'][0]['domain_services'],['turn_off','turn_on'])
+        self.assertEqual(x['capabilities'][0]['members'][0]['supported_features'],5)
+    def test_automations_redacted_to_counts(self):
+        x=scan([],[],[{'entity_id':'automation.private_family_name','state':'on'},
+                        {'entity_id':'automation.another','state':'off'}])
+        self.assertEqual(x['automations']['enabled'],1)
+        self.assertNotIn('private_family_name',str(x))
+    def test_private_options_filtered(self):
+        x=scan([{'id':'d1','name':'Fan'}],
+               [{'device_id':'d1','entity_id':'select.fan_mode'}],
+               [{'entity_id':'select.fan_mode','state':'auto','attributes':{'options':['Auto','secret PIN','Eco']}}])
+        self.assertEqual(x['devices'][0]['capabilities'][0]['members'][0]['options'],['Auto','Eco'])
     def test_measurements_not_control(self):
         x=self.one('sensor')
         self.assertEqual(x['observable_categories'],1)
