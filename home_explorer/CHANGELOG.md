@@ -1,3 +1,8 @@
+## [0.11.0] — Development candidate
+- Separate device reading health from electrical supply and actual operation.
+- Per-device counts of reporting, unavailable, and unknown entities; never infer a device fault from one sensor.
+- Dependency mapping and scheduled-off classification require explicit verified upstream relationships; not yet implemented.
+
 # Home Explorer — Changelog
 
 All notable changes to Home Explorer are documented here. Home Explorer remains read-only; capability descriptions do not verify executable Home Assistant commands.
