@@ -6,7 +6,7 @@
 
 - On-demand discovery of registered devices and their exposed Home Assistant entities.
 - Compact, expandable device rows with manufacturer/model and parent-device information where available.
-- Automation status counts, with names and definitions excluded.
+- Automation status counts and exact structured device-reference counts; automation names, configuration bodies and IDs remain excluded. Some automations may be unavailable for analysis; coverage is reported.
 - Domain-wide service catalogue and reported feature flags; neither proves a service can be called for an individual entity.
 - Read-only at-a-glance status summaries where real readings are available.
 - Device-specific entity names and readable Home Assistant states, with technical entity IDs and raw values available on demand.
@@ -23,7 +23,7 @@
 - Unknown or unavailable states should not be interpreted as device faults.
 - Private-name filtering is heuristic, not guaranteed anonymization. Review screenshots before sharing.
 - Supervisor access remains server-side and should be protected. Entity identifiers and filtered state values are shown only to authenticated users of the local application.
-- Automation definitions and device relationships are not reviewed; suggestions are not verified automations.
+- Automation definitions are inspected only in memory for exact entity/device references, without exposing raw configurations; suggestions are not verified automations.
 
 ## Installation and updates
 
