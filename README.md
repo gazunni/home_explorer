@@ -15,7 +15,7 @@ Sensitive domains are excluded. No entity names, identifiers or GPS coordinates 
 
 ## Installation
 Home Assistant Green currently runs Core 2026.10.1, Supervisor 2026.09.3 and HA OS 18.3. This source has NOT been installed or verified on that setup.
-Custom App repository installation may not support private GitHub repositories. Do not make this repository public and do not embed GitHub tokens in a repository URL. A private-compatible local Apps installation workflow must be validated before proceeding.
+Custom App repository installation may not support private GitHub repositories. Do not make this repository public and do not embed GitHub tokens in a repository URL. Home Assistant supports local Apps in `/local_apps`. See `INSTALLATION.md` for the private-repository workflow. This is a development build and remains untested on the Green.
 
 ## Roadmap
 1. Validate local Ingress behaviour and connectivity.
