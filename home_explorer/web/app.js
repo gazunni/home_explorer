@@ -6,6 +6,8 @@ let selectedSource = '';
 let proposedTarget = '';
 
 const openRows = new Set();
+const alpha = (a,b) => a.localeCompare(b, undefined, {numeric:true,sensitivity:'base'});
+let scanInProgress = false;
 function elem(tag, text, className) {
   const node = document.createElement(tag);
   if (text !== undefined) node.textContent = text;
@@ -68,6 +70,7 @@ function render() {
     (kind === 'all' || (kind === 'virtual' ? d.virtual : !d.virtual)) &&
     [d.name, d.manufacturer, d.model, d.related_to || '',
      ...d.capabilities.flatMap(c => [c.type, ...(c.members || []).flatMap(m => [m.name, m.entity_id])])].join(' ').toLocaleLowerCase().includes(term));
+  matches.sort((a,b) => alpha(a.d.name,b.d.name));
   const fragment = document.createDocumentFragment();
   for (const {d, index} of matches) {
     const row = elem('details', undefined, 'device-row');
@@ -176,7 +179,9 @@ function render() {
 }
 get('search').addEventListener('input', render);
 get('kind').addEventListener('change', render);
-get('scan').addEventListener('click', async () => {
+async function refreshDevices() {
+  if (scanInProgress) return;
+  scanInProgress = true;
   get('scan').disabled = true;
   get('status').textContent = 'Reading device and entity registries locally…';
   try {
@@ -211,8 +216,10 @@ get('scan').addEventListener('click', async () => {
       ' sensitive-name entries filtered. No devices or automations were changed.';
     render();
   } catch (error) {get('status').textContent = 'Scan unavailable: ' + error.message;}
-  finally {get('scan').disabled = false;}
-});
+  finally {get('scan').disabled = false; scanInProgress = false;}
+}
+get('scan').addEventListener('click', refreshDevices);
+refreshDevices();
 
 
 /* Compact touch-first relationship editor. No nested scrolling or drag requirement. */
@@ -228,21 +235,25 @@ function mapperChoices() {
       }
     }
   }
-  return sources;
+  return sources.sort((a,b) => alpha(a.label,b.label));
 }
 function renderMapper() {
   const sourceSelect = get('map-source');
   const targetSelect = get('map-target-select');
   const query = get('map-search').value.trim().toLocaleLowerCase();
+  const sourceQuery = get('map-source-search').value.trim().toLocaleLowerCase();
   const oldTarget = targetSelect.value;
   const sources = mapperChoices();
   sourceSelect.replaceChildren(new Option('Choose a smart outlet…', ''));
-  for (const source of sources)
+  for (const source of sources.filter(x => (x.label + ' ' + x.id).toLocaleLowerCase().includes(sourceQuery)))
     sourceSelect.append(new Option(source.label, source.id));
   sourceSelect.value = sources.some(s => s.id === selectedSource) ? selectedSource : '';
   selectedSource = sourceSelect.value;
   targetSelect.replaceChildren(new Option('Choose an appliance…', ''));
-  const names = devices.filter(d => !d.virtual && d.name.toLocaleLowerCase().includes(query));
+  const names = devices.filter(d => !d.virtual &&
+    [d.name,d.manufacturer,d.model,...d.capabilities.flatMap(c => (c.members || []).map(m => m.name))]
+      .join(' ').toLocaleLowerCase().includes(query))
+    .sort((a,b) => alpha(a.name,b.name));
   const unique = new Set();
   for (const d of names) {
     if (unique.has(d.name)) continue;
@@ -294,6 +305,7 @@ get('map-source').addEventListener('change', event => {
   get('map-proposal').hidden = true;
 });
 get('map-search').addEventListener('input', renderMapper);
+get('map-source-search').addEventListener('input', renderMapper);
 get('map-add').addEventListener('click', () => {
   const target = get('map-target-select').value;
   const source = get('map-source').value;
