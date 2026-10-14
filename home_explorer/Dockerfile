@@ -5,7 +5,5 @@ RUN pip install --no-cache-dir "websockets==15.0.1" && addgroup -S explorer && a
 COPY server.py ./server.py
 COPY web ./web
 RUN mkdir -p /data
-COPY entrypoint.sh ./entrypoint.sh
-RUN chmod 755 ./entrypoint.sh
 EXPOSE 8099
-CMD ["./entrypoint.sh"]
+CMD ["python", "-B", "server.py"]
