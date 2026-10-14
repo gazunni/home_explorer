@@ -1,24 +1,28 @@
-# Home Explorer v0.1.0 — Secure Discovery
+# Home Explorer v0.3.0 — Plain-Language Discovery
 
-Development proof of concept for Home Assistant OS on Home Assistant Green (aarch64).
+Runs as a **local Home Assistant Green app** through authenticated Ingress. No external hosting or browser API token.
 
-## Scope
-- Protected Home Assistant App (formerly add-on), via Ingress.
-- Reads current Home Assistant states through the Supervisor proxy.
-- Returns **aggregated entity-domain counts only**, not physical devices or detailed capabilities.
-- No device-control endpoints, external telemetry, cloud research or retained home inventories.
-- Existing Home Assistant dashboards and automations remain untouched.
+## What's new
+- Distinguish Sense virtual energy-monitor detections from HA registered equipment. The new filter defaults to excluding Sense detections; they remain viewable.
+- Identify related child components using Home Assistant's `via_device_id` parent relationship when available (for example, some robot vacuum docks).
+- Explain entity categories in plain language; expand a card to view descriptions.
+- Offer conditional, read-only automation ideas **not** represented as existing automations or guaranteed actions.
+- Search by device, manufacturer, model, parent or exposed feature.
+- Expanded name filtering for some personal names. Filtering is heuristic, NOT full anonymization.
 
-## Security boundary
-The internal Supervisor token has broad permissions. The application's code restricts its operations to reads, but the API credential is **not a true read-only credential**. No security audit or on-device integration testing has yet been performed. Do not treat this as production ready.
-Sensitive domains are excluded. No entity names, identifiers or GPS coordinates are returned to the browser.
+## Safety and limitations
+- Uses Home Assistant WebSocket through Supervisor inside Green; app has no direct host networking and no device-control endpoints.
+- Supervisor token remains high privilege despite this app only issuing two registry read queries.
+- Does not inspect automation definitions, current states, area assignments or vendor command details.
+- No data export, analytics, external assets or background polling.
+- Sense virtual detection classification is based on exactly matching the known manufacturer/model metadata and may miss other virtual detections.
+- Multiple similar-looking physical devices are NOT automatically merged based on name alone.
+- The user-facing privacy filter does not guarantee redaction of identifying names. Do not share screenshots as anonymized.
 
-## Installation
-Home Assistant Green currently runs Core 2026.10.1, Supervisor 2026.09.3 and HA OS 18.3. This source has NOT been installed or verified on that setup.
-Custom App repository installation may not support private GitHub repositories. Do not make this repository public and do not embed GitHub tokens in a repository URL. A private-compatible local Apps installation workflow must be validated before proceeding.
+## Repository-based installation
+Home Assistant can register this public GitHub repository as an app source. Read `REPOSITORY_UPDATES.md` before installing. The current user-confirmed deployment is a separate /local_apps installation; **do not remove or overwrite the working app without a migration plan**.
 
-## Roadmap
-1. Validate local Ingress behaviour and connectivity.
-2. Collect registry metadata and group entities by actual physical device.
-3. Explain existing automations and dependency chains in plain English.
-4. Add capability discovery and optional documentation research with consent.
+## v0.3.0 deployment status
+Home Assistant Green: user-confirmed running, discovery and interface verified on October 14, 2026.
+
+Tests: offline Python unit tests + syntax verification.
