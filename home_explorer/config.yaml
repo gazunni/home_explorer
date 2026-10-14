@@ -2,7 +2,7 @@ name: Home Explorer
 slug: home_explorer
 description: Read-only explanation of devices and exposed entity capabilities
 url: https://github.com/gazunni/home_explorer
-version: 0.11.1
+version: 0.11.2
 arch:
   - aarch64
 init: false
