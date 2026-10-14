@@ -1,0 +1,19 @@
+home_explorer/
+  .env.example
+  README.md
+  DEPLOYED.md
+  INSTALLATION.md
+  CHANGED_FILES.txt
+  PROJECT_TREE.txt
+  REPOSITORY_UPDATES.md
+  repository.yaml
+  home_explorer/
+    Dockerfile
+    config.yaml
+    server.py
+    tests/
+      test_discovery.py
+    web/
+      index.html
+      app.js
+      style.css

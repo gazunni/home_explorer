@@ -1,0 +1,51 @@
+:root{font-family:system-ui,-apple-system,sans-serif;background:#0a1421;color:#e5f0ff;color-scheme:dark}*{box-sizing:border-box}body{margin:0;padding:22px 15px}main{max-width:1080px;margin:auto}header{display:flex;align-items:center;gap:14px;margin-bottom:22px}header h1{font-size:25px;margin:0}header p,.meta,small,footer,.hint{color:#a9bacc}header p{margin:5px 0}.mark{padding:8px 15px;border-radius:14px;font-size:34px;background:#234c66}.chip{margin-left:auto;border:1px solid #377b66;border-radius:20px;color:#9ee5c6;background:#14392e;padding:8px;font-size:11px;font-weight:700}.hero{background:linear-gradient(110deg,#203f59,#172b41);border:1px solid #39627b;padding:25px;border-radius:17px}.hero h2{font-size:26px;margin:0 0 8px}.hero p{line-height:1.5}button{display:block;margin:18px 0 10px;background:#7bdbc6;color:#072520;font-size:15px;padding:13px 18px;border:0;border-radius:10px;font-weight:700;cursor:pointer}button:disabled{opacity:.6}small{display:block}#status{padding:20px 1px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.stats>div,.device{padding:17px;background:#142438;border:1px solid #35465c;border-radius:14px}.stats strong{font-size:28px;display:block}.stats span{font-size:13px;color:#a9bacc}.toolbar{display:flex;align-items:end;gap:12px;margin:18px 0;flex-wrap:wrap}.toolbar label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:#b9c7d8}.search{flex:2;min-width:190px}.filter{flex:1;min-width:155px}.toolbar input,.toolbar select{width:100%;background:#142438;color:#e5f0ff;border:1px solid #416078;border-radius:9px;padding:12px;font-size:15px}.toolbar>span{font-size:12px;color:#9eafc3;padding-bottom:12px}.devices{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}.device h3{margin:0;font-size:19px;overflow-wrap:anywhere}.device p{line-height:1.45}.heading{display:flex;align-items:flex-start;flex-direction:column;gap:8px}.kind{font-size:11px;color:#a9e9d8;background:#214458;padding:5px 8px;border-radius:10px}.meta{font-size:13px}.related{font-size:13px;color:#a4e7c9}details{border-top:1px solid #35465c;margin-top:14px;padding-top:10px}summary{cursor:pointer;color:#b9e9dd;font-weight:650;font-size:14px}.guide{display:grid;gap:9px;padding-top:12px}.feature strong{font-size:13px}.feature p{margin:3px 0 0;font-size:12px;color:#b6c6d8}.device h4{margin:16px 0 7px;font-size:14px}.idea{font-size:12px;color:#b6c6d8;margin:6px 0}.idea strong{color:#dbe7fa}.hint{font-size:12px}.empty{padding:18px}footer{border-top:1px solid #314353;margin-top:30px;padding:20px 0;font-size:12px}@media(max-width:550px){.hero{padding:18px}.stats{gap:5px}.stats>div{padding:10px}.stats strong{font-size:23px}header{flex-wrap:wrap}.chip{margin-left:0}}
+.access{display:flex;flex-wrap:wrap;gap:7px}.access span{border-radius:7px;padding:5px 7px;font-size:11px}.access-info{background:#263a51;color:#bfd7ed}.access-possible{background:#234a42;color:#b5e9d0}.verification{font-style:italic}.unknown{font-size:12px;color:#dfc993;background:#343029;border-radius:8px;padding:9px}
+
+/* v0.5.0: compact, single-column expandable device rows */
+.devices{display:flex;flex-direction:column;gap:7px}
+.device-row{margin:0;padding:0;border:1px solid #35465c;border-radius:11px;background:#142438;overflow:hidden}
+.device-summary{display:flex;align-items:center;gap:12px;padding:12px 15px;cursor:pointer;list-style:none;color:#e5f0ff;font-size:15px}
+.device-summary::-webkit-details-marker{display:none}
+.device-summary::marker{content:""}
+.device-summary:focus-visible{outline:2px solid #7bdbc6;outline-offset:-3px}
+.device-title{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.device-title strong{font-size:15px;overflow-wrap:anywhere}
+.row-meta{font-size:12px;color:#a9bacc;overflow-wrap:anywhere}
+.row-counts{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.row-counts span{font-size:11px;padding:5px 7px;border-radius:6px;white-space:nowrap}
+.chevron{display:inline-block;flex:none;width:9px;height:9px;border-right:2px solid #9dd9d0;border-top:2px solid #9dd9d0;transform:rotate(45deg);transition:transform .15s;margin:0 5px}
+.device-row[open]>.device-summary .chevron{transform:rotate(135deg)}
+.device-row[open]>.device-summary{background:#1b344d}
+.device-body{border-top:1px solid #35465c;padding:13px 17px 16px}
+.device-body h4{font-size:14px;margin:14px 0 8px}
+.device-body .kind{display:inline-block;margin:0}
+.device-body .guide{padding-top:0}
+.device-body .feature{padding:8px 0;border-bottom:1px solid #293f54}
+.device-body .hint{margin-bottom:0}
+@media(max-width:620px){.device-summary{padding:11px 12px;gap:8px}.row-counts{max-width:42%}.row-counts span{font-size:10px}.row-meta{font-size:11px}.device-title strong{font-size:14px}}
+
+.entity-members{margin:8px 0;display:flex;flex-direction:column;gap:5px}
+.entity-member{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;padding:8px;border:1px solid #31475b;border-radius:7px;background:#102032}
+.entity-identity{display:flex;flex-direction:column;gap:3px;min-width:0}
+.entity-id{font-size:12px;color:#aec3d7;overflow-wrap:anywhere}
+.entity-state{font-size:12px;color:#aee0d1}
+.disclaimer{font-size:13px;margin:10px 0}.disclaimer summary{cursor:pointer;color:#a6dcd2}
+
+/* v0.7.0 — current states first, technical IDs available on demand */
+.capability-group{border-top:1px solid #32485e;padding:8px 0 4px}
+.capability-group h4{margin:7px 0 9px;font-size:14px}
+.entity-member{display:block;margin:6px 0;background:#102235}
+.entity-identity{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.friendly-state{color:#a8e3d8;font-weight:600;font-size:13px}
+.technical-details{width:100%;padding:6px 0 0;font-size:12px}
+.technical-details summary{color:#95b6d1;cursor:pointer;width:max-content;max-width:100%;font-size:12px}
+.technical-details[open]{padding-bottom:6px}
+.technical-details code{display:block;padding:7px 0;color:#b6c9d9;overflow-wrap:anywhere}
+.technical-details p{margin:5px 0;color:#a8b8cb}
+.technical-details .service-warning{font-style:italic}
+
+/* v0.8: concise read-only device snapshot */
+.at-a-glance{background:#102b3c;border:1px solid #335971;border-radius:10px;padding:11px 14px;margin:10px 0 14px}
+.at-a-glance h4{margin:0 0 8px}
+.glance-line{display:flex;justify-content:space-between;gap:12px;padding:5px 0;flex-wrap:wrap;color:#b4c7d9}
+.glance-line strong{color:#a8e3d8;font-weight:600}

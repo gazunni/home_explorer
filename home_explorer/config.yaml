@@ -1,0 +1,20 @@
+name: Home Explorer
+slug: home_explorer
+description: Read-only explanation of devices and exposed entity capabilities
+url: https://github.com/gazunni/home_explorer
+version: 0.11.0
+arch:
+  - aarch64
+init: false
+startup: application
+boot: manual
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:home-search
+panel_title: Home Explorer
+panel_admin: true
+homeassistant_api: true
+hassio_role: default
+host_network: false
+protected: true
+stage: experimental
