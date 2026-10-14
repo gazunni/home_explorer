@@ -169,10 +169,12 @@ get('scan').addEventListener('click', async () => {
     devices = data.devices;
     if (data.automations && get('automation-status')) {
       const a = data.automations;
+      const incomplete = a.configurations_checked < a.lookup_attempted;
       get('automation-status').textContent = 'Existing automations: ' + a.total + ' detected · ' + a.enabled +
         ' enabled · ' + a.disabled + ' disabled · ' + a.other +
         ' other · ' + a.configurations_checked + ' of ' + a.lookup_attempted +
-        ' eligible configurations checked. Relationships require exact structured references; automation names are hidden.';
+        ' eligible configurations checked.' + (incomplete ? ' Partial analysis: some automation definitions were unavailable.' : '') +
+        ' Relationships require exact structured references; automation names are hidden.';
     }
     openRows.clear();
     get('registered').textContent = String(data.registered_devices);
