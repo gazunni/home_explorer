@@ -1,9 +1,22 @@
 import unittest
 import json
 from unittest.mock import patch
-from server import scan, referenced_devices, automation_links, registry_request, device_diagnostics
+from server import scan, referenced_devices, automation_links, registry_request, device_diagnostics, power_dependency
 
 class ScanTests(unittest.TestCase):
+    def test_confirmed_outlet_off_is_not_appliance_failure(self):
+        x = power_dependency('Coldroom Dehumidifier',
+                             {'switch.cold_room_dehumidifier':'off'})
+        self.assertEqual(x['supply_state'],'off')
+        self.assertNotIn('switch.cold_room_dehumidifier',str(x))
+        self.assertIn('may be unavailable',x['interpretation'])
+    def test_confirmed_outlet_on_does_not_imply_operation(self):
+        x = power_dependency('Coldroom Dehumidifier',
+                             {'switch.cold_room_dehumidifier':'on'})
+        self.assertIn('does not prove',x['interpretation'])
+    def test_no_inferred_wiring_for_other_devices(self):
+        self.assertIsNone(power_dependency('Another Dehumidifier',
+                          {'switch.cold_room_dehumidifier':'off'}))
     def test_mixed_sensor_availability_is_not_device_failure(self):
         data = [{'state':'on'},{'state':'unavailable'},{'state':'unknown'}]
         self.assertEqual(device_diagnostics(data), {
