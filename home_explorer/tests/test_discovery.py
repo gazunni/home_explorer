@@ -1,10 +1,43 @@
 import unittest
-from server import scan, referenced_devices, automation_links
+import json
+from unittest.mock import patch
+from server import scan, referenced_devices, automation_links, registry_request
 
 class ScanTests(unittest.TestCase):
     def one(self, domain):
         return scan([{'id':'d1','name':'Living Room Device','manufacturer':'Example','model':'M1'}],
                     [{'device_id':'d1','entity_id':domain+'.test'}])['devices'][0]
+    def test_read_only_automation_websocket_schema(self):
+        class FakeWS:
+            def __init__(self):
+                self.commands = []
+                self.replies = iter([
+                    {'type':'auth_required'}, {'type':'auth_ok'},
+                    {'id':1,'success':True,'result':[]},
+                    {'id':2,'success':True,'result':[]},
+                    {'id':3,'success':True,'result':[{'entity_id':'automation.test_1','state':'on'}]},
+                    {'id':4,'success':True,'result':{}},
+                    {'id':5,'success':True,'result':{'config':{
+                        'actions':[{'target':{'entity_id':'switch.fan'}}]}}}
+                ])
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+            def send(self, value):
+                self.commands.append(json.loads(value))
+            def recv(self, **kwargs):
+                return json.dumps(next(self.replies))
+        fake = FakeWS()
+        with patch.dict('os.environ',{'SUPERVISOR_TOKEN':'dummy'}):
+            with patch('server.connect',return_value=fake):
+                result = registry_request()
+        self.assertEqual(len(result), 6)
+        self.assertEqual(result[4][0]['actions'][0]['target']['entity_id'],'switch.fan')
+        self.assertEqual(fake.commands[-1],{'id':5,'type':'automation/config',
+                                            'entity_id':'automation.test_1'})
+        self.assertTrue(all(cmd.get('type') not in ('call_service','automation/trigger')
+                            for cmd in fake.commands))
     def test_structured_automation_relations(self):
         config={'triggers':[{'trigger':'state','entity_id':'sensor.fan_temperature'}],
                 'conditions':[{'condition':'state','entity_id':'switch.fan'}],
