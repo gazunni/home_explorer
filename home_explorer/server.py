@@ -231,6 +231,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
             continue
         if domain in ALLOWED_DOMAINS and entity.get('disabled_by') is None:
             entity_devices[entity_id] = dev
+            entity_devices[dev] = dev
             by_device[dev].append({'domain': domain, 'entity_id': entity_id,
                                    'label': label[:90], 'state': safe_states.get(entity_id, 'Not available'),
                                    'metadata': metadata.get(entity_id, {})})
