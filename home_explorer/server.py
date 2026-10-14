@@ -15,7 +15,7 @@ MAX_ENTITIES = 10000
 PRIVATE_NAME = re.compile(
     r'(?:camera|door|lock|alarm|siren|presence|location|gps|person|'
     r'ipad|iphone|phone|pixel|galaxy|tablet|webhook|email|'
-    r'motion|leak|moisture|security|fob|@|\b(?:dave|david|cindy|gazunni)\b)', re.IGNORECASE)
+    r'motion|leak|moisture|security|secret|credential|token|password|api[_-]?key|fob|@|\b(?:dave|david|cindy|gazunni)\b)', re.IGNORECASE)
 ALLOWED_DOMAINS = {
     'light', 'switch', 'sensor', 'binary_sensor', 'fan', 'climate',
     'humidifier', 'vacuum', 'lawn_mower', 'cover', 'media_player',
