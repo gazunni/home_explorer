@@ -1,0 +1,14 @@
+repository.yaml
+README.md
+DEPLOYED.md
+CHANGED_FILES.txt
+PROJECT_TREE.txt
+.env.example
+home_explorer/
+  config.yaml
+  Dockerfile
+  server.py
+  web/
+    index.html
+    style.css
+    app.js
