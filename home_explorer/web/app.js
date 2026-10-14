@@ -22,6 +22,10 @@ function render() {
     heading.append(elem('span', d.kind, 'kind'));
     card.append(heading);
     card.append(elem('p', d.manufacturer + ' · ' + d.model, 'meta'));
+    const access = elem('div', undefined, 'access');
+    if (d.observable_categories) access.append(elem('span', d.observable_categories + ' information group(s)', 'access-info'));
+    if (d.potential_control_categories) access.append(elem('span', d.potential_control_categories + ' possible control group(s)', 'access-possible'));
+    card.append(access);
     if (d.related_to) card.append(elem('p', 'Part of: ' + d.related_to, 'related'));
     const detail = elem('details');
     const summary = elem('summary', 'What Home Assistant exposes (' + d.entity_count + ')');
@@ -29,11 +33,13 @@ function render() {
     const list = elem('div', undefined, 'guide');
     for (const cap of d.capabilities) {
       const item = elem('div', undefined, 'feature');
-      item.append(elem('strong', cap.type + ' · ' + cap.entities));
+      item.append(elem('strong', cap.type + ' · ' + cap.entities + ' · ' + cap.access));
       item.append(elem('p', cap.explanation));
+      item.append(elem('p', cap.verification, 'verification'));
       list.append(item);
     }
     detail.append(list);
+    detail.append(elem('p', 'Manufacturer-app-only features: unknown. This scan does not query the manufacturer or enumerate live service commands.', 'unknown'));
     card.append(detail);
     if (d.virtual) {
       card.append(elem('p', 'This is a detection made by your Sense energy monitor, not necessarily another controllable appliance.', 'hint'));
