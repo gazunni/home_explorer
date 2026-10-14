@@ -135,6 +135,29 @@ def summarize_entities(entities):
             break
     return output
 
+# Explicit, administrator-reviewed entity relationships only. No name matching.
+# A configured upstream switch describes wiring, not an automation schedule.
+POWER_DEPENDENCIES = (
+    ('Coldroom Dehumidifier', 'switch.cold_room_dehumidifier'),
+)
+
+def power_dependency(name, states):
+    for appliance, entity_id in POWER_DEPENDENCIES:
+        if name != appliance:
+            continue
+        state = states.get(entity_id, 'Not available')
+        if state not in ('on', 'off'):
+            state = 'Not available'
+        return {'source': 'User-confirmed', 'supply_state': state,
+                'interpretation': (
+                    'Upstream outlet is off; appliance readings may be unavailable.'
+                    if state == 'off' else
+                    'Upstream outlet is on; this does not prove appliance operation.'
+                    if state == 'on' else
+                    'Upstream outlet state could not be confirmed.'
+                )}
+    return None
+
 def device_diagnostics(entities):
     """Evidence summary, not an assertion of connectivity or scheduled intent."""
     if not entities:
@@ -301,6 +324,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
             'capabilities': guide, 'entity_count': len(domains), 'ideas': ideas,
             'summary': summarize_entities(domains),
             'diagnostics': device_diagnostics(domains),
+            'power_dependency': power_dependency(name, safe_states),
             'automation_links': dict(associations.get(device_id, {'trigger':0,'condition':0,'action':0})),
             'observable_categories': sum(1 for k in counts if k in OBSERVATION_DOMAINS),
             'potential_control_categories': sum(1 for k in counts if k in POTENTIAL_CONTROL_DOMAINS),
