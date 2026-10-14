@@ -5,3 +5,5 @@
 - v0.4.0: Published to GitHub; **not yet confirmed deployed on Green**.
 
 - v0.5.0: Published to GitHub on 2026-10-14. Awaiting installation and functional verification on Green.
+
+- v0.6.0: GitHub published 2026-10-14. Awaiting Home Assistant functional verification.
