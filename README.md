@@ -1,24 +1,28 @@
-# Home Explorer v0.1.0 — Secure Discovery
+# Home Explorer v0.2.0 — Registered Device Discovery
 
-Development proof of concept for Home Assistant OS on Home Assistant Green (aarch64).
+**Status:** Development branch only. Not installed on the Home Assistant Green.
 
-## Scope
-- Protected Home Assistant App (formerly add-on), via Ingress.
-- Reads current Home Assistant states through the Supervisor proxy.
-- Returns **aggregated entity-domain counts only**, not physical devices or detailed capabilities.
-- No device-control endpoints, external telemetry, cloud research or retained home inventories.
-- Existing Home Assistant dashboards and automations remain untouched.
+## Features
+- Runs as a protected Home Assistant App with authenticated Ingress.
+- Reads the Home Assistant device registry and entity registry on demand through the internal WebSocket proxy.
+- Lists registered devices, manufacturer and model, grouped exposed entity categories and entity counts.
+- Search/filter devices without any cloud services.
+- Filters sensitive entity domains and devices with security/location-related names. This is a heuristic, **not a guarantee of complete anonymization**.
+- No device control commands, automation editing, history access or background polling.
+- Does not upload any household inventory or persist discoveries to disk.
 
-## Security boundary
-The internal Supervisor token has broad permissions. The application's code restricts its operations to reads, but the API credential is **not a true read-only credential**. No security audit or on-device integration testing has yet been performed. Do not treat this as production ready.
-Sensitive domains are excluded. No entity names, identifiers or GPS coordinates are returned to the browser.
+## Important limitations
+- "Capabilities" are exposed entity types, **not** a complete inventory of actual supported commands or manufacturer features.
+- Not all entities belong to registered devices.
+- Child devices may appear as separate entries and will need parent relationship display improvements.
+- The Supervisor token is highly privileged: our code only sends read commands but the credential itself is **not scoped read-only**.
+- The app and dependencies have **not** yet been validated or tested on real Green hardware.
 
-## Installation
-Home Assistant Green currently runs Core 2026.10.1, Supervisor 2026.09.3 and HA OS 18.3. This source has NOT been installed or verified on that setup.
-Custom App repository installation may not support private GitHub repositories. Do not make this repository public and do not embed GitHub tokens in a repository URL. A private-compatible local Apps installation workflow must be validated before proceeding.
+## Installation process
+Do not overwrite the running v0.1.0 prototype until a backup of its local app folder is made and v0.2.0 tests pass. The private repository stays private. Use the established local Apps directory /local_apps.
 
-## Roadmap
-1. Validate local Ingress behaviour and connectivity.
-2. Collect registry metadata and group entities by actual physical device.
-3. Explain existing automations and dependency chains in plain English.
-4. Add capability discovery and optional documentation research with consent.
+## Next development steps
+1. Validate Python and JavaScript syntax, configuration schema, dependency versions and safe responses.
+2. Verify WebSocket registry availability with HA Core 2026.10.1.
+3. Add parent-child grouping and richer feature explanations.
+4. Read-only automation relationship discovery in a later release.
