@@ -1,11 +1,14 @@
-# Home Explorer v0.7.0 — Explore Your Connected Home
+# Home Explorer v0.10.0 — Explore Your Connected Home
 
 **Home Explorer** is a read-only device and capability explorer for Home Assistant, running locally through authenticated Home Assistant Ingress. It helps you understand what Home Assistant can see without issuing commands or modifying devices and automations.
 
-## Current features (v0.7.0)
+## Current features (v0.10.0)
 
 - On-demand discovery of registered devices and their exposed Home Assistant entities.
 - Compact, expandable device rows with manufacturer/model and parent-device information where available.
+- Automation status counts and exact structured device-reference counts; automation names, configuration bodies and IDs remain excluded. Some automations may be unavailable for analysis; coverage is reported.
+- Domain-wide service catalogue and reported feature flags; neither proves a service can be called for an individual entity.
+- Read-only at-a-glance status summaries where real readings are available.
 - Device-specific entity names and readable Home Assistant states, with technical entity IDs and raw values available on demand.
 - Separate categories for information-only entities and **potential** controls. A potential control is not a verified working command.
 - Separate device and Sense energy-monitor detection views.
@@ -20,7 +23,7 @@
 - Unknown or unavailable states should not be interpreted as device faults.
 - Private-name filtering is heuristic, not guaranteed anonymization. Review screenshots before sharing.
 - Supervisor access remains server-side and should be protected. Entity identifiers and filtered state values are shown only to authenticated users of the local application.
-- Existing automation definitions are not reviewed; suggestions are not verified automations.
+- Automation definitions are inspected only in memory for exact entity/device references, without exposing raw configurations; suggestions are not verified automations.
 
 ## Installation and updates
 
@@ -38,7 +41,7 @@ Full instructions: [INSTALLATION.md](INSTALLATION.md).
 
 ## Version history
 
-Current version: **0.7.0** (October 14, 2026).
+Current version: **0.10.0** (October 14, 2026).
 
 See the [complete changelog](home_explorer/CHANGELOG.md) for release-by-release details. Release history is maintained there rather than appended to this README.
 

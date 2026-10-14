@@ -2,6 +2,22 @@
 
 All notable changes to Home Explorer are documented here. Home Explorer remains read-only; capability descriptions do not verify executable Home Assistant commands.
 
+## [0.10.0] — Development candidate
+- Read-only exact automation-to-device reference counts, separated into triggers, conditions and actions; no automation names or raw definitions returned.
+- Coverage indicator for configurations checked, with explicit handling for partial coverage.
+- Regression tests for templates, private identifiers, structured references, and redaction.
+- Read-only automation on/off status totals; no names or configurations exposed.
+- Domain-wide service inventory and reported feature flags, without command execution.
+- Privacy-safe reported select options and regression tests.
+
+## [0.9.0] — Included in combined candidate
+- Capability metadata discovery; does not prove entity-level service availability.
+
+## [0.8.0] — Development candidate
+- Added read-only at-a-glance device summaries based on existing exposed, non-private states.
+- Prioritized meaningful known readings and excluded unknown/unavailable values from summaries.
+- Added privacy and summary regression tests.
+
 ## [0.7.0] — 2026-10-14
 ### Changed
 - Display readable interpretations of common Home Assistant states.

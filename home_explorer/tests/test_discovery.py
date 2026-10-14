@@ -1,10 +1,95 @@
 import unittest
-from server import scan
+import json
+from unittest.mock import patch
+from server import scan, referenced_devices, automation_links, registry_request
 
 class ScanTests(unittest.TestCase):
     def one(self, domain):
         return scan([{'id':'d1','name':'Living Room Device','manufacturer':'Example','model':'M1'}],
                     [{'device_id':'d1','entity_id':domain+'.test'}])['devices'][0]
+    def test_read_only_automation_websocket_schema(self):
+        class FakeWS:
+            def __init__(self):
+                self.commands = []
+                self.replies = iter([
+                    {'type':'auth_required'}, {'type':'auth_ok'},
+                    {'id':1,'success':True,'result':[]},
+                    {'id':2,'success':True,'result':[]},
+                    {'id':3,'success':True,'result':[{'entity_id':'automation.test_1','state':'on'}]},
+                    {'id':4,'success':True,'result':{}},
+                    {'id':5,'success':True,'result':{'config':{
+                        'actions':[{'target':{'entity_id':'switch.fan'}}]}}}
+                ])
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+            def send(self, value):
+                self.commands.append(json.loads(value))
+            def recv(self, **kwargs):
+                return json.dumps(next(self.replies))
+        fake = FakeWS()
+        with patch.dict('os.environ',{'SUPERVISOR_TOKEN':'dummy'}):
+            with patch('server.connect',return_value=fake):
+                result = registry_request()
+        self.assertEqual(len(result), 6)
+        self.assertEqual(result[4][0]['actions'][0]['target']['entity_id'],'switch.fan')
+        self.assertEqual(fake.commands[-1],{'id':5,'type':'automation/config',
+                                            'entity_id':'automation.test_1'})
+        self.assertTrue(all(cmd.get('type') not in ('call_service','automation/trigger')
+                            for cmd in fake.commands))
+    def test_structured_automation_relations(self):
+        config={'triggers':[{'trigger':'state','entity_id':'sensor.fan_temperature'}],
+                'conditions':[{'condition':'state','entity_id':'switch.fan'}],
+                'actions':[{'action':'switch.turn_on','target':{'entity_id':'switch.fan'}}]}
+        mapping={'sensor.fan_temperature':'dev1','switch.fan':'dev1'}
+        self.assertEqual(referenced_devices(config,mapping),
+                         {('dev1','trigger'),('dev1','condition'),('dev1','action')})
+        links=automation_links([config],mapping)
+        self.assertEqual(links['dev1'],{'trigger':1,'condition':1,'action':1})
+    def test_templates_and_arbitrary_text_not_matched(self):
+        config={'triggers':[{'value_template':'sensor.fan_temperature'}],
+                'actions':[{'data':{'message':'switch.fan'}},
+                           {'target':{'entity_id':'{{ states.sensor.secret }}'}}]}
+        self.assertEqual(referenced_devices(config,{'sensor.fan_temperature':'x','switch.fan':'x'}),set())
+    def test_related_counts_only_no_private_config_leak(self):
+        config={'alias':'secret family alarm',
+                'triggers':[{'entity_id':'sensor.temp'}],
+                'actions':[{'target':{'device_id':'d1'}}]}
+        result=scan([{'id':'d1','name':'Fan'}],
+                    [{'device_id':'d1','entity_id':'sensor.temp'}],configurations=[config],attempted=1)
+        self.assertEqual(result['devices'][0]['automation_links']['action'],1)
+        self.assertEqual(result['automations']['configurations_checked'],1)
+        self.assertNotIn('secret family alarm',str(result))
+        self.assertNotIn('d1',str(result))
+    def test_sensitive_entity_not_linked_to_automation(self):
+        config={'actions':[{'target':{'entity_id':'switch.secret_device'}}]}
+        result=scan([{'id':'d1','name':'Fan'}],
+                    [{'device_id':'d1','entity_id':'switch.secret_device'},
+                     {'device_id':'d1','entity_id':'sensor.fan_temperature'}],
+                    configurations=[config],attempted=1)
+        self.assertEqual(result['devices'][0]['automation_links']['action'],0)
+    def test_missing_configurations_not_falsely_reported_complete(self):
+        result=scan([],[],configurations=[],attempted=15)
+        self.assertEqual(result['automations']['configurations_checked'],0)
+        self.assertEqual(result['automations']['lookup_attempted'],15)
+    def test_service_catalog_is_domain_wide_only(self):
+        x = scan([{'id':'d1','name':'Lamp'}],
+                 [{'device_id':'d1','entity_id':'light.desk'}],
+                 [{'entity_id':'light.desk','state':'on','attributes':{'supported_features':5}}],
+                 {'light':{'turn_on':{},'turn_off':{}}})['devices'][0]
+        self.assertEqual(x['capabilities'][0]['domain_services'],['turn_off','turn_on'])
+        self.assertEqual(x['capabilities'][0]['members'][0]['supported_features'],5)
+    def test_automations_redacted_to_counts(self):
+        x=scan([],[],[{'entity_id':'automation.private_family_name','state':'on'},
+                        {'entity_id':'automation.another','state':'off'}])
+        self.assertEqual(x['automations']['enabled'],1)
+        self.assertNotIn('private_family_name',str(x))
+    def test_private_options_filtered(self):
+        x=scan([{'id':'d1','name':'Fan'}],
+               [{'device_id':'d1','entity_id':'select.fan_mode'}],
+               [{'entity_id':'select.fan_mode','state':'auto','attributes':{'options':['Auto','secret PIN','Eco']}}])
+        self.assertEqual(x['devices'][0]['capabilities'][0]['members'][0]['options'],['Auto','Eco'])
     def test_measurements_not_control(self):
         x=self.one('sensor')
         self.assertEqual(x['observable_categories'],1)
@@ -25,6 +110,21 @@ class ScanTests(unittest.TestCase):
                [{'device_id':'abcPRIVATE','entity_id':'light.secret_identifier'}])
         self.assertNotIn('abcPRIVATE',str(x))
         self.assertNotIn('secret_identifier',str(x))
+    def test_summary_uses_actual_registered_states(self):
+        result = scan([{'id':'d1','name':'Dryer'}],
+                      [{'device_id':'d1','entity_id':'sensor.dryer_current_status'},
+                       {'device_id':'d1','entity_id':'sensor.dryer_remaining_time'}],
+                      [{'entity_id':'sensor.dryer_current_status','state':'power_off'},
+                       {'entity_id':'sensor.dryer_remaining_time','state':'unknown'}])
+        self.assertEqual(result['devices'][0]['summary'], [
+            {'label':'Current status','state':'power_off','domain':'sensor'}])
+    def test_summary_excludes_private_and_absent_readings(self):
+        result = scan([{'id':'d1','name':'Lamp'}],
+                      [{'device_id':'d1','entity_id':'sensor.lamp_battery'},
+                       {'device_id':'d1','entity_id':'sensor.secret_battery'}],
+                      [{'entity_id':'sensor.lamp_battery','state':'unknown'},
+                       {'entity_id':'sensor.secret_battery','state':'70'}])
+        self.assertEqual(result['devices'][0]['summary'], [])
     def test_members_include_entity_domain_and_state(self):
         item = scan([{'id':'d1','name':'Dryer'}],
                     [{'device_id':'d1','entity_id':'sensor.dryer_current_status'}],

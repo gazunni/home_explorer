@@ -86,6 +86,24 @@ function render() {
     row.append(summary);
     const body = elem('div', undefined, 'device-body');
     body.append(elem('p', d.kind, 'kind'));
+    if (Array.isArray(d.summary) && d.summary.length) {
+      const glance = elem('div', undefined, 'at-a-glance');
+      glance.append(elem('h4', 'At a glance'));
+      for (const point of d.summary) {
+        const line = elem('div', undefined, 'glance-line');
+        line.append(elem('span', point.label));
+        line.append(elem('strong', readableState(point.state, point.domain)));
+        glance.append(line);
+      }
+      body.append(glance);
+    }
+    if (d.automation_links) {
+      const refs = d.automation_links;
+      const sum = refs.trigger + refs.condition + refs.action;
+      if (sum) body.append(elem('p', 'Existing automation references: ' + refs.trigger +
+        ' trigger · ' + refs.condition + ' condition · ' + refs.action +
+        ' action. Counts reflect exact references in checked configurations only.', 'automation-links'));
+    }
     if (d.related_to) body.append(elem('p', 'Part of: ' + d.related_to, 'related'));
     body.append(elem('h4', 'What Home Assistant exposes (' + d.entity_count + ')'));
     const list = elem('div', undefined, 'guide');
@@ -103,6 +121,12 @@ function render() {
         detail.append(elem('summary', 'Technical details'));
         detail.append(elem('code', member.entity_id, 'entity-id'));
         detail.append(elem('p', 'Raw state: ' + String(member.state), 'raw-state'));
+        if (Number.isInteger(member.supported_features))
+          detail.append(elem('p', 'Reported supported-features bitmask: ' + member.supported_features + ' (not service-tested)', 'feature-flags'));
+        if (Array.isArray(member.options) && member.options.length)
+          detail.append(elem('p', 'Reported options: ' + member.options.join(', '), 'reported-options'));
+        if (Array.isArray(cap.domain_services) && cap.domain_services.length)
+          detail.append(elem('p', 'Domain-wide service catalogue: ' + cap.domain_services.join(', ') + '. These are not verified for this specific entity.', 'listed-services'));
         detail.append(elem('p', capabilityNote(member.domain || cap.domain), 'service-note'));
         detail.append(elem('p', 'No services have been invoked or tested. Actual control availability depends on the integration, entity and permissions.', 'service-warning'));
         entry.append(detail);
@@ -143,6 +167,15 @@ get('scan').addEventListener('click', async () => {
     if (data.error) throw new Error(data.error);
     if (!Array.isArray(data.devices)) throw new Error('Invalid response');
     devices = data.devices;
+    if (data.automations && get('automation-status')) {
+      const a = data.automations;
+      const incomplete = a.configurations_checked < a.lookup_attempted;
+      get('automation-status').textContent = 'Existing automations: ' + a.total + ' detected · ' + a.enabled +
+        ' enabled · ' + a.disabled + ' disabled · ' + a.other +
+        ' other · ' + a.configurations_checked + ' of ' + a.lookup_attempted +
+        ' eligible configurations checked.' + (incomplete ? ' Partial analysis: some automation definitions were unavailable.' : '') +
+        ' Relationships require exact structured references; automation names are hidden.';
+    }
     openRows.clear();
     get('registered').textContent = String(data.registered_devices);
     get('shown').textContent = String(data.displayed_devices);

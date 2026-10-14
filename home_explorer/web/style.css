@@ -43,3 +43,9 @@
 .technical-details code{display:block;padding:7px 0;color:#b6c9d9;overflow-wrap:anywhere}
 .technical-details p{margin:5px 0;color:#a8b8cb}
 .technical-details .service-warning{font-style:italic}
+
+/* v0.8: concise read-only device snapshot */
+.at-a-glance{background:#102b3c;border:1px solid #335971;border-radius:10px;padding:11px 14px;margin:10px 0 14px}
+.at-a-glance h4{margin:0 0 8px}
+.glance-line{display:flex;justify-content:space-between;gap:12px;padding:5px 0;flex-wrap:wrap;color:#b4c7d9}
+.glance-line strong{color:#a8e3d8;font-weight:600}
