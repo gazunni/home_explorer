@@ -137,7 +137,7 @@ def summarize_entities(entities):
 
 # Explicit local configuration only; never infer electrical wiring from names.
 # Edit power_dependencies.json to confirm relationships before they are displayed.
-DEPENDENCY_FILE = Path(__file__).resolve().parent / 'power_dependencies.json'
+DEPENDENCY_FILE = Path('/data/power_dependencies.json')
 
 def load_power_dependencies(path=DEPENDENCY_FILE):
     try:
@@ -154,6 +154,23 @@ def load_power_dependencies(path=DEPENDENCY_FILE):
                 and not PRIVATE_NAME.search(name + ' ' + entity_id)):
             result[name] = entity_id
     return result
+
+def save_power_dependencies(mapping, path=DEPENDENCY_FILE):
+    """Atomically persist confirmed wiring only in the add-on's private data."""
+    if not isinstance(mapping, dict) or len(mapping) > 100:
+        raise ValueError('Invalid mapping')
+    for name, entity_id in mapping.items():
+        if (not isinstance(name, str) or not isinstance(entity_id, str)
+                or not 0 < len(name) <= 90
+                or not re.fullmatch(r'switch\.[a-z0-9_]{1,100}', entity_id)
+                or PRIVATE_NAME.search(name + ' ' + entity_id)):
+            raise ValueError('Invalid relationship')
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp = path.with_suffix('.tmp')
+    temp.write_text(json.dumps(mapping, sort_keys=True), encoding='utf-8')
+    temp.replace(path)
+    return len(mapping)
 
 def power_dependency(name, states, dependencies=None):
     mapping = load_power_dependencies() if dependencies is None else dependencies
@@ -385,6 +402,8 @@ class Handler(BaseHTTPRequestHandler):
         if self.client_address[0] != GATEWAY:
             return self.reply(403, b'Forbidden', 'text/plain')
         route = self.path.split('?', 1)[0].rstrip('/')
+        if route.endswith('/api/relationships'):
+            return self.reply(200, json.dumps(load_power_dependencies()).encode(), 'application/json')
         if route.endswith('/api/devices'):
             try:
                 data = json.dumps(scan(*registry_request())).encode()
@@ -400,8 +419,28 @@ class Handler(BaseHTTPRequestHandler):
         return self.reply(200, (BASE / 'index.html').read_bytes(), 'text/html; charset=utf-8')
 
     def do_POST(self):
-        return self.reply(405, b'Read-only', 'text/plain')
-    do_PUT = do_PATCH = do_DELETE = do_POST
+        if self.client_address[0] != GATEWAY:
+            return self.reply(403, b'Forbidden', 'text/plain')
+        route = self.path.split('?', 1)[0].rstrip('/')
+        if not route.endswith('/api/relationships'):
+            return self.reply(405, b'Not allowed', 'text/plain')
+        if (self.headers.get('Content-Type', '').split(';')[0].strip() != 'application/json'
+                or self.headers.get('X-Home-Explorer') != 'relationship-update'):
+            return self.reply(415, b'Unsupported request', 'text/plain')
+        try:
+            size = int(self.headers.get('Content-Length', '0'))
+            if not 2 <= size <= 16000:
+                return self.reply(413, b'Invalid request size', 'text/plain')
+            mapping = json.loads(self.rfile.read(size))
+            saved = save_power_dependencies(mapping)
+            return self.reply(200, json.dumps({'saved': saved}).encode(), 'application/json')
+        except (ValueError, TypeError):
+            return self.reply(400, b'Invalid relationship', 'text/plain')
+        except OSError:
+            return self.reply(503, b'Local storage unavailable', 'text/plain')
+    def do_PUT(self):
+        return self.reply(405, b'Not allowed', 'text/plain')
+    do_PATCH = do_DELETE = do_PUT
 
 if __name__ == '__main__':
     ThreadingHTTPServer(('0.0.0.0', PORT), Handler).serve_forever()
