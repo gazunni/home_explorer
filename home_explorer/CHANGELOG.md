@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.12.0] — Development candidate
+- Show confirmed upstream outlet state directly in the appliance row.
+- Explain combinations of outlet state and appliance readings without claiming operating status, automation intent, or faults.
+- Load local confirmed mappings once per scan; no Home Assistant commands are issued.
+
 ## [0.11.7] — 2026-10-14
 - Corrected the add-on update notes to show recent releases in order.
 - Aligned the version displayed in the web interface with the add-on version.
