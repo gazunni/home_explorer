@@ -97,6 +97,15 @@ function render() {
       }
       body.append(glance);
     }
+    if (d.power_dependency) {
+      const supply = d.power_dependency;
+      const panel = elem('div', undefined, 'at-a-glance');
+      panel.append(elem('h4', 'Confirmed upstream power supply'));
+      panel.append(elem('p', 'Outlet: ' + readableState(supply.supply_state, 'switch')));
+      panel.append(elem('p', supply.interpretation));
+      panel.append(elem('small', 'Relationship confirmed by homeowner. This does not verify an automation schedule or device health.'));
+      body.append(panel);
+    }
     if (d.diagnostics) {
       const diag = d.diagnostics;
       const summary = elem('p', 'Reading health: ' + diag.status + ' · ' +
