@@ -47,6 +47,13 @@ class ScanTests(unittest.TestCase):
             save_power_dependencies({'Appliance':'switch.outlet_two'}, path)
             self.assertEqual(load_power_dependencies(path),
                              {'Appliance':'switch.outlet_two'})
+    def test_save_creates_private_data_directory(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'nested' / 'mapping.json'
+            save_power_dependencies({'Appliance':'switch.outlet'}, path)
+            self.assertEqual(load_power_dependencies(path), {'Appliance':'switch.outlet'})
     def test_save_reload_local_mapping(self):
         import tempfile
         from pathlib import Path
