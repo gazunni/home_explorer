@@ -20,6 +20,15 @@ class ScanTests(unittest.TestCase):
         self.assertIsNone(power_dependency('Another Dehumidifier',
                           {'switch.sample_outlet':'off'},
                           {'Sample Appliance':'switch.sample_outlet'}))
+    def test_loader_ignores_invalid_mapping_but_preserves_valid(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'mapping.json'
+            path.write_text(json.dumps({'Appliance':'switch.good_outlet',
+                                        'Private':'switch.secret_token'}))
+            self.assertEqual(load_power_dependencies(path),
+                             {'Appliance':'switch.good_outlet'})
     def test_save_reload_local_mapping(self):
         import tempfile
         from pathlib import Path
