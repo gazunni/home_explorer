@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Explorer remains read-only; capability descriptions do not verify executable Home Assistant commands.
 
+## [0.8.0] — Development candidate
+- Added read-only at-a-glance device summaries based on existing exposed, non-private states.
+- Prioritized meaningful known readings and excluded unknown/unavailable values from summaries.
+- Added privacy and summary regression tests.
+
 ## [0.7.0] — 2026-10-14
 ### Changed
 - Display readable interpretations of common Home Assistant states.
