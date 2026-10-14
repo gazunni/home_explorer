@@ -1,4 +1,4 @@
-"""Home Explorer 0.6.0: on-demand, read-only registry exploration."""
+"""Home Explorer 0.7.0: on-demand, read-only registry exploration."""
 import json
 import os
 import re
@@ -137,7 +137,7 @@ def scan(devices, entities, states=None):
             'entities': n,
             'explanation': CAPABILITY_GUIDE[k][1],
             'access': 'Information only' if k in OBSERVATION_DOMAINS else 'Potential control',
-            'members': [{'name': e['label'], 'entity_id': e['entity_id'], 'state': e['state']}
+            'members': [{'name': e['label'], 'entity_id': e['entity_id'], 'state': e['state'], 'domain': e['domain']}
                         for e in domains if e['domain'] == k][:100],
             'verification': ('Read-only state/measurement category.'
                              if k in OBSERVATION_DOMAINS else
@@ -166,7 +166,7 @@ def scan(devices, entities, states=None):
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.6.0', 'mode': 'read-only',
+        'version': '0.7.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
