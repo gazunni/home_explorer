@@ -54,6 +54,10 @@ class ScanTests(unittest.TestCase):
             path = Path(folder) / 'nested' / 'mapping.json'
             save_power_dependencies({'Appliance':'switch.outlet'}, path)
             self.assertEqual(load_power_dependencies(path), {'Appliance':'switch.outlet'})
+    def test_data_file_is_outside_source_tree(self):
+        from pathlib import Path
+        from server import DEPENDENCY_FILE
+        self.assertEqual(DEPENDENCY_FILE, Path('/data/power_dependencies.json'))
     def test_save_reload_local_mapping(self):
         import tempfile
         from pathlib import Path
