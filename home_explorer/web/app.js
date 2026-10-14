@@ -14,7 +14,7 @@ function render() {
   const matches = devices.map((d, index) => ({d, index})).filter(({d}) =>
     (kind === 'all' || (kind === 'virtual' ? d.virtual : !d.virtual)) &&
     [d.name, d.manufacturer, d.model, d.related_to || '',
-     ...d.capabilities.map(c => c.type)].join(' ').toLocaleLowerCase().includes(term));
+     ...d.capabilities.flatMap(c => [c.type, ...(c.members || []).flatMap(m => [m.name, m.entity_id])])].join(' ').toLocaleLowerCase().includes(term));
   const fragment = document.createDocumentFragment();
   for (const {d, index} of matches) {
     const row = elem('details', undefined, 'device-row');
@@ -45,10 +45,22 @@ function render() {
       item.append(elem('strong', cap.type + ' · ' + cap.entities + ' · ' + cap.access));
       item.append(elem('p', cap.explanation));
       item.append(elem('p', cap.verification, 'verification'));
+      if (Array.isArray(cap.members)) {
+        const members = elem('div', undefined, 'entity-members');
+        for (const member of cap.members) {
+          const entry = elem('div', undefined, 'entity-member');
+          const identity = elem('span', undefined, 'entity-identity');
+          identity.append(elem('strong', member.name));
+          identity.append(elem('code', member.entity_id, 'entity-id'));
+          entry.append(identity);
+          entry.append(elem('span', 'State: ' + member.state, 'entity-state'));
+          members.append(entry);
+        }
+        item.append(members);
+      }
       list.append(item);
     }
     body.append(list);
-    body.append(elem('p', 'Manufacturer-app-only features: unknown. Registry data cannot establish manufacturer-only functionality.', 'unknown'));
     if (d.virtual) {
       body.append(elem('p', 'This is a Sense energy-monitor detection, not necessarily a separate controllable appliance.', 'hint'));
     } else if (d.ideas.length) {
