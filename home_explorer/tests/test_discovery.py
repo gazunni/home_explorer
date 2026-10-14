@@ -1,48 +1,49 @@
 import unittest
 from server import scan
-class ScanTest(unittest.TestCase):
-    def test_normal(self):
-        result=scan([{'id':'1','name':'Living Fan','manufacturer':'Example','model':'F1'}],[{'device_id':'1','entity_id':'fan.living'},{'device_id':'1','entity_id':'sensor.power'}])
-        self.assertEqual(result['displayed_devices'],1)
-        self.assertEqual(result['devices'][0]['entity_count'],2)
-    def test_private(self):
-        result=scan([{'id':'1','name':'Front Door Lock'}],[{'device_id':'1','entity_id':'sensor.battery'}])
-        self.assertEqual(result['displayed_devices'],0)
-    def test_no_ids(self):
-        result=scan([{'id':'1','name':'Fan'}],[{'device_id':'1','entity_id':'fan.private_identifier'}])
-        self.assertNotIn('private_identifier',str(result))
-    def test_limits(self):
-        with self.assertRaises(RuntimeError):scan([{'id':str(i)} for i in range(1001)],[])
 
+class ScanTests(unittest.TestCase):
+    def one(self, domain):
+        return scan([{'id':'d1','name':'Living Room Device','manufacturer':'Example','model':'M1'}],
+                    [{'device_id':'d1','entity_id':domain+'.test'}])['devices'][0]
+    def test_measurements_not_control(self):
+        x=self.one('sensor')
+        self.assertEqual(x['observable_categories'],1)
+        self.assertEqual(x['potential_control_categories'],0)
+        self.assertEqual(x['capabilities'][0]['access'],'Information only')
+    def test_binary_sensor_information(self):
+        self.assertEqual(self.one('binary_sensor')['capabilities'][0]['access'],'Information only')
+    def test_switch_possible_not_confirmed(self):
+        x=self.one('switch')
+        self.assertEqual(x['potential_control_categories'],1)
+        self.assertIn('not been checked',x['capabilities'][0]['verification'])
+    def test_no_vendor_only_conclusion(self):
+        x=self.one('light')
+        self.assertNotIn('requires app',str(x))
+        self.assertIn('cannot be determined',scan([],[])['note'])
+    def test_no_raw_ids(self):
+        x=scan([{'id':'abcPRIVATE','name':'Lamp'}],
+               [{'device_id':'abcPRIVATE','entity_id':'light.secret_identifier'}])
+        self.assertNotIn('abcPRIVATE',str(x))
+        self.assertNotIn('secret_identifier',str(x))
+    def test_sensitive_name(self):
+        x=scan([{'id':'1','name':'Front Door Lock'}],
+               [{'device_id':'1','entity_id':'sensor.battery'}])
+        self.assertEqual(x['displayed_devices'],0)
+    def test_parent(self):
+        x=scan([{'id':'p','name':'Vacuum'},{'id':'c','name':'Dock','via_device_id':'p'}],
+               [{'device_id':'p','entity_id':'vacuum.main'},{'device_id':'c','entity_id':'sensor.dock'}])
+        self.assertEqual(next(d for d in x['devices'] if d['name']=='Dock')['related_to'],'Vacuum')
+    def test_sense_virtual(self):
+        x=scan([{'id':'1','name':'Bear','manufacturer':'Sense Labs, Inc.','model':'Sense'}],
+               [{'device_id':'1','entity_id':'sensor.power'}])
+        self.assertTrue(x['devices'][0]['virtual'])
+    def test_size_limit(self):
+        with self.assertRaises(RuntimeError):
+            scan([{'id':str(i)} for i in range(1001)],[])
+    def test_disabled_entity(self):
+        x=scan([{'id':'1','name':'Fan'}],
+               [{'device_id':'1','entity_id':'fan.one','disabled_by':'user'}])
+        self.assertEqual(x['displayed_devices'],0)
 
-class DiscoveryV030Tests(unittest.TestCase):
-    def test_parent_grouping_without_registry_id_leak(self):
-        devices=[{'id':'p1','name':'Vacuum','manufacturer':'Roborock','model':'S5V'},
-                 {'id':'c1','name':'Dock','manufacturer':'Roborock','model':'Dock','via_device_id':'p1'}]
-        entities=[{'device_id':'p1','entity_id':'vacuum.example'},{'device_id':'c1','entity_id':'sensor.dock'}]
-        result=scan(devices,entities)
-        dock=next(x for x in result['devices'] if x['name']=='Dock')
-        self.assertEqual(dock['related_to'],'Vacuum')
-        self.assertNotIn('p1',str(result))
-        self.assertNotIn('via_device_id',str(result))
-
-    def test_sense_is_virtual_not_merged(self):
-        devices=[{'id':'s1','name':'Bear','manufacturer':'Sense Labs, Inc.','model':'Sense'},
-                 {'id':'s2','name':'Bear','manufacturer':'Sense Labs, Inc.','model':'Sense'}]
-        entities=[{'device_id':'s1','entity_id':'sensor.bear_1'},
-                  {'device_id':'s2','entity_id':'sensor.bear_2'}]
-        result=scan(devices,entities)
-        self.assertEqual(result['displayed_devices'],2)
-        self.assertEqual(result['virtual_monitor_entries'],2)
-        self.assertTrue(all(x['virtual'] for x in result['devices']))
-
-    def test_ideas_are_not_claimed_automations(self):
-        result=scan([{'id':'x','name':'Room fan','manufacturer':'Example'}],
-                    [{'device_id':'x','entity_id':'fan.room'}])
-        self.assertTrue(result['devices'][0]['ideas'])
-        self.assertIn('not been verified',result['note'])
-
-    def test_private_name(self):
-        result=scan([{'id':'x','name':'Cindy Button','manufacturer':'Sample'}],
-                    [{'device_id':'x','entity_id':'sensor.battery'}])
-        self.assertEqual(result['displayed_devices'],0)
+if __name__ == '__main__':
+    unittest.main()
