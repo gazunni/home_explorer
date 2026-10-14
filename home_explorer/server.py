@@ -1,4 +1,4 @@
-"""Home Explorer 0.5.0: on-demand, read-only registry exploration."""
+"""Home Explorer 0.6.0: on-demand, read-only registry exploration."""
 import json
 import os
 import re
@@ -36,7 +36,7 @@ def registry_request():
             raise RuntimeError('Authentication failed')
         result = []
         for request_id, kind in enumerate(
-                ('config/device_registry/list', 'config/entity_registry/list'), 1):
+                ('config/device_registry/list', 'config/entity_registry/list', 'get_states'), 1):
             ws.send(json.dumps({'id': request_id, 'type': kind}))
             message = json.loads(ws.recv(timeout=15))
             if message.get('id') != request_id or not message.get('success'):
@@ -82,10 +82,17 @@ IDEAS = {
     'switch': ('Power schedules', 'Review off-hours schedules for nonessential loads; avoid critical equipment.'),
 }
 
-def scan(devices, entities):
+def scan(devices, entities, states=None):
     if len(devices) > MAX_DEVICES or len(entities) > MAX_ENTITIES:
         raise RuntimeError('Registry exceeds safety limit')
     by_device = defaultdict(list)
+    safe_states = {}
+    for item in (states or []):
+        if not isinstance(item, dict):
+            continue
+        eid, value = item.get('entity_id'), item.get('state')
+        if isinstance(eid, str) and isinstance(value, str) and len(value) <= 80 and eid.split('.', 1)[0] in ALLOWED_DOMAINS:
+            safe_states[eid] = value
     for entity in entities:
         if not isinstance(entity, dict):
             continue
@@ -94,8 +101,12 @@ def scan(devices, entities):
         if not isinstance(dev, str) or not isinstance(entity_id, str) or '.' not in entity_id:
             continue
         domain = entity_id.split('.', 1)[0]
+        label = entity.get('name') or entity.get('original_name') or entity_id.split('.', 1)[-1].replace('_', ' ')
+        if not isinstance(label, str) or PRIVATE_NAME.search(entity_id + ' ' + label):
+            continue
         if domain in ALLOWED_DOMAINS and entity.get('disabled_by') is None:
-            by_device[dev].append(domain)
+            by_device[dev].append({'domain': domain, 'entity_id': entity_id,
+                                   'label': label[:90], 'state': safe_states.get(entity_id, 'Not available')})
     # Internal registry keys are used only for grouping and are NEVER returned to the browser.
     lookup = {d['id']: d for d in devices if isinstance(d, dict) and isinstance(d.get('id'), str)}
     visible = {}
@@ -114,7 +125,7 @@ def scan(devices, entities):
         domains = by_device.get(device_id, [])
         if not domains:
             continue
-        counts = Counter(domains)
+        counts = Counter(e['domain'] for e in domains)
         # Sense virtual detection is limited to known Sense integration metadata.
         # Never merge same-name entities without parent/device evidence.
         is_virtual = manufacturer.strip().casefold() in ('sense labs, inc.', 'sense labs inc.', 'sense labs') and model.strip().casefold() == 'sense'
@@ -126,6 +137,8 @@ def scan(devices, entities):
             'entities': n,
             'explanation': CAPABILITY_GUIDE[k][1],
             'access': 'Information only' if k in OBSERVATION_DOMAINS else 'Potential control',
+            'members': [{'name': e['label'], 'entity_id': e['entity_id'], 'state': e['state']}
+                        for e in domains if e['domain'] == k][:100],
             'verification': ('Read-only state/measurement category.'
                              if k in OBSERVATION_DOMAINS else
                              'Entity category suggests a possible control. Actual services, permissions, '
@@ -153,7 +166,7 @@ def scan(devices, entities):
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.5.0', 'mode': 'read-only',
+        'version': '0.6.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
