@@ -1,11 +1,12 @@
-# Home Explorer v0.7.0 — Explore Your Connected Home
+# Home Explorer v0.8.0 — Explore Your Connected Home
 
 **Home Explorer** is a read-only device and capability explorer for Home Assistant, running locally through authenticated Home Assistant Ingress. It helps you understand what Home Assistant can see without issuing commands or modifying devices and automations.
 
-## Current features (v0.7.0)
+## Current features (v0.8.0)
 
 - On-demand discovery of registered devices and their exposed Home Assistant entities.
 - Compact, expandable device rows with manufacturer/model and parent-device information where available.
+- Read-only at-a-glance status summaries where real readings are available.
 - Device-specific entity names and readable Home Assistant states, with technical entity IDs and raw values available on demand.
 - Separate categories for information-only entities and **potential** controls. A potential control is not a verified working command.
 - Separate device and Sense energy-monitor detection views.
@@ -38,7 +39,7 @@ Full instructions: [INSTALLATION.md](INSTALLATION.md).
 
 ## Version history
 
-Current version: **0.7.0** (October 14, 2026).
+Current version: **0.8.0** (October 14, 2026).
 
 See the [complete changelog](home_explorer/CHANGELOG.md) for release-by-release details. Release history is maintained there rather than appended to this README.
 
