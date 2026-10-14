@@ -25,6 +25,21 @@ class ScanTests(unittest.TestCase):
                [{'device_id':'abcPRIVATE','entity_id':'light.secret_identifier'}])
         self.assertNotIn('abcPRIVATE',str(x))
         self.assertNotIn('secret_identifier',str(x))
+    def test_summary_uses_actual_registered_states(self):
+        result = scan([{'id':'d1','name':'Dryer'}],
+                      [{'device_id':'d1','entity_id':'sensor.dryer_current_status'},
+                       {'device_id':'d1','entity_id':'sensor.dryer_remaining_time'}],
+                      [{'entity_id':'sensor.dryer_current_status','state':'power_off'},
+                       {'entity_id':'sensor.dryer_remaining_time','state':'unknown'}])
+        self.assertEqual(result['devices'][0]['summary'], [
+            {'label':'Current status','state':'power_off','domain':'sensor'}])
+    def test_summary_excludes_private_and_absent_readings(self):
+        result = scan([{'id':'d1','name':'Lamp'}],
+                      [{'device_id':'d1','entity_id':'sensor.lamp_battery'},
+                       {'device_id':'d1','entity_id':'sensor.secret_battery'}],
+                      [{'entity_id':'sensor.lamp_battery','state':'unknown'},
+                       {'entity_id':'sensor.secret_battery','state':'70'}])
+        self.assertEqual(result['devices'][0]['summary'], [])
     def test_members_include_entity_domain_and_state(self):
         item = scan([{'id':'d1','name':'Dryer'}],
                     [{'device_id':'d1','entity_id':'sensor.dryer_current_status'}],
