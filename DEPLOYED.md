@@ -1,5 +1,5 @@
-# Deployment record
-- v0.1.0: User-confirmed running on Home Assistant Green and 1,525-entity scan successful.
-- v0.2.0: User-confirmed installed, startup/discovery successful; 329 registered device entries, 220 visible.
-- v0.3.0: User-confirmed running on Home Assistant Green on October 14, 2026, with the device discovery interface operational. A recurring exit code 137 on shutdown remains to be investigated.
-- GitHub repository-managed installation: **not yet deployed**. Existing Green installation uses /local_apps.
+# Deployment history
+- v0.1.0: Local Green version; discovery succeeded.
+- v0.2.0: Local Green version; registered equipment discovery succeeded.
+- v0.3.0: Green GitHub-managed installation successfully running and scanning 329 registered entries on October 14, 2026. Local version removed after backup.
+- v0.4.0: Published to GitHub; **not yet confirmed deployed on Green**.
