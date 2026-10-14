@@ -247,8 +247,7 @@ function renderMapper() {
   sourceSelect.replaceChildren(new Option('Choose a smart outlet…', ''));
   for (const source of sources.filter(x => (x.label + ' ' + x.id).toLocaleLowerCase().includes(sourceQuery)))
     sourceSelect.append(new Option(source.label, source.id));
-  sourceSelect.value = sources.some(s => s.id === selectedSource) ? selectedSource : '';
-  selectedSource = sourceSelect.value;
+  sourceSelect.value = [...sourceSelect.options].some(o => o.value === selectedSource) ? selectedSource : '';
   targetSelect.replaceChildren(new Option('Choose an appliance…', ''));
   const names = devices.filter(d => !d.virtual &&
     [d.name,d.manufacturer,d.model,...d.capabilities.flatMap(c => (c.members || []).map(m => m.name))]
@@ -263,6 +262,7 @@ function renderMapper() {
   }
   if ([...targetSelect.options].some(o => o.value === oldTarget))
     targetSelect.value = oldTarget;
+  updateMapperPreview();
   const existing = get('map-existing');
   existing.replaceChildren();
   const entries = Object.entries(mappings);
@@ -300,9 +300,23 @@ async function persistMappings(next) {
     get('map-status').textContent = error.message;
   }
 }
+function updateMapperPreview() {
+  const source = mapperChoices().find(x => x.id === get('map-source').value);
+  const target = devices.find(x => !x.virtual && x.name === get('map-target-select').value);
+  const sourceDevice = source && devices.find(x => !x.virtual && x.name === source.owner);
+  const sourceMeta = sourceDevice ? [sourceDevice.manufacturer,sourceDevice.model].filter(Boolean).join(' · ') : '';
+  const targetMeta = target ? [target.manufacturer,target.model].filter(Boolean).join(' · ') : '';
+  get('map-source-info').textContent = source ? source.label + (sourceMeta ? ' — ' + sourceMeta : '') : 'Select a power source to see its details.';
+  get('map-target-info').textContent = target ? target.name + (targetMeta ? ' — ' + targetMeta : '') : 'Select an appliance to see its details.';
+}
 get('map-source').addEventListener('change', event => {
   selectedSource = event.target.value;
   get('map-proposal').hidden = true;
+  updateMapperPreview();
+});
+get('map-target-select').addEventListener('change', () => {
+  get('map-proposal').hidden = true;
+  updateMapperPreview();
 });
 get('map-search').addEventListener('input', renderMapper);
 get('map-source-search').addEventListener('input', renderMapper);
@@ -325,7 +339,9 @@ get('map-add').addEventListener('click', () => {
   get('map-proposal').hidden = false;
 });
 get('map-confirm').addEventListener('click', () => {
-  if (proposedTarget && selectedSource)
+  if (proposedTarget && selectedSource &&
+      get('map-target-select').value === proposedTarget &&
+      get('map-source').value === selectedSource)
     persistMappings({...mappings,[proposedTarget]:selectedSource});
 });
 get('map-cancel').addEventListener('click', () => {
