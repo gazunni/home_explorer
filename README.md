@@ -21,3 +21,6 @@ Your GitHub-managed Home Explorer installation is the repository app (not /local
 
 ## Verification
 Run `python -m unittest discover -s home_explorer/tests` with the `home_explorer` directory on PYTHONPATH and websockets installed. Run `python -m py_compile home_explorer/server.py` and `node --check home_explorer/web/app.js`.
+
+## v0.5.0 — Compact device rows
+The device grid has been replaced with a single-column list. Tap a device row or the right-side chevron to expand its capabilities, parent relationship, explanations and suggested uses. Multiple devices may be open simultaneously. Search and device-type filtering remain intact. Expansion state is retained while filtering and reset on a fresh scan. All operations remain read-only.
