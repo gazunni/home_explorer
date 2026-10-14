@@ -11,3 +11,5 @@
 - v0.7.0: Release candidate staged via GitHub PR. Runtime verification pending.
 
 - v0.8.0: Development candidate, NOT installed or verified on Home Assistant.
+
+- v0.9.0–v0.10.0 combined development candidate: NOT installed or verified on Green.
