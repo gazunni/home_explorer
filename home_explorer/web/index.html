@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101c2b"><title>Home Explorer</title>
+<link rel="stylesheet" href="style.css"></head>
+<body><main>
+<header><span class="logo">⌂</span><div><h1>Home Explorer</h1><p>Understand your home, one capability at a time.</p></div><span class="chip">READ-ONLY</span></header>
+<section class="hero"><h2>What can your home do?</h2>
+<p>Start with a safe inventory. This does not control devices, modify automations or upload data.</p>
+<button id="scan">Discover available entities</button>
+<p class="small">v0.1.0 groups entities by category, not physical device. Detailed device discovery comes later.</p></section>
+<div id="status" role="status">Select Discover to begin.</div>
+<div class="stats" id="stats" hidden><div><strong id="entities">—</strong><small>Visible entities</small></div><div><strong id="groups">—</strong><small>Capability groups</small></div><div><strong>0</strong><small>Changes made</small></div></div>
+<section id="result" class="results" aria-live="polite"></section>
+<footer>Home Explorer v0.1.0 · Local scan only · No device identifiers sent to the browser</footer>
+</main><script src="app.js" defer></script></body></html>
