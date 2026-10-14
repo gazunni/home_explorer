@@ -1,7 +1,11 @@
-# Home Explorer v0.4.0 — GitHub update
-GitHub source: https://github.com/gazunni/home_explorer
-Home Assistant Green app slug: 222fed32_home_explorer (verified on the user's Green on 2026-10-14).
+# Home Explorer v0.5.0
 
-Settings → Apps → Home Explorer → Update when offered. To check for updates, refresh app repositories from the App Store menu if needed.
+Source: https://github.com/gazunni/home_explorer
 
-Do not install a second app or copy ZIPs into /local_apps. Do not enable automatic application upgrades until shutdown behaviour (historical exit code 137 after manual stopping) is investigated. Preserve /share/home_explorer_v030_backup.
+1. In Home Assistant Terminal run `ha store reload` to refresh the GitHub repository if the new version is not yet offered.
+2. Settings → Apps → GitHub-managed Home Explorer → Update to 0.5.0. Keep backup option enabled.
+3. Verify state Running, Open Web UI, Explore my devices, and confirm rows expand and collapse using the chevrons.
+4. Test device-only and energy-monitor filters; test search with multiple expanded rows.
+5. Keep Auto update disabled during active development.
+
+Do not reinstall the removed local app. Existing backup files under /share remain unchanged.
