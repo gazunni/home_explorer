@@ -97,6 +97,13 @@ function render() {
       }
       body.append(glance);
     }
+    if (d.automation_links) {
+      const refs = d.automation_links;
+      const sum = refs.trigger + refs.condition + refs.action;
+      if (sum) body.append(elem('p', 'Existing automation references: ' + refs.trigger +
+        ' trigger · ' + refs.condition + ' condition · ' + refs.action +
+        ' action. Counts reflect exact references in checked configurations only.', 'automation-links'));
+    }
     if (d.related_to) body.append(elem('p', 'Part of: ' + d.related_to, 'related'));
     body.append(elem('h4', 'What Home Assistant exposes (' + d.entity_count + ')'));
     const list = elem('div', undefined, 'guide');
@@ -164,7 +171,8 @@ get('scan').addEventListener('click', async () => {
       const a = data.automations;
       get('automation-status').textContent = 'Existing automations: ' + a.total + ' detected · ' + a.enabled +
         ' enabled · ' + a.disabled + ' disabled · ' + a.other +
-        ' other. Names, rules and device relationships were not examined.';
+        ' other · ' + a.configurations_checked + ' of ' + a.lookup_attempted +
+        ' eligible configurations checked. Relationships require exact structured references; automation names are hidden.';
     }
     openRows.clear();
     get('registered').textContent = String(data.registered_devices);
