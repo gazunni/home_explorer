@@ -5,6 +5,8 @@ home_explorer/web/app.js
 home_explorer/web/style.css
 home_explorer/config.yaml
 home_explorer/Dockerfile
+home_explorer/tests/test_discovery.py
+.github/workflows/validate.yml
 README.md
 DEPLOYED.md
 CHANGED_FILES.txt
