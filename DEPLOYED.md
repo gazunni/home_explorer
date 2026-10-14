@@ -1,7 +1,4 @@
-# Deployment — Home Explorer v0.1.0
+# Home Explorer releases
 
-Status: source committed, NOT installed or tested on Home Assistant Green.
-Target: HA Core 2026.10.1; Supervisor 2026.09.3; OS 18.3.
-Private-repository installation needs validation.
-Existing configuration and automations unchanged.
-Manual deletions: none.
+- v0.1.0: Installed and confirmed running on Home Assistant Green by homeowner; first scan reported 1,525 visible entities across 32 categories. No device commands were invoked.
+- v0.2.0: DEVELOPMENT BRANCH ONLY. Not installed, started, or validated on hardware. Adds WebSocket registry device discovery and privacy heuristics. Do not assume deployment.
