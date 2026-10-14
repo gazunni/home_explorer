@@ -1,4 +1,4 @@
-"""Home Explorer 0.10.0: on-demand, read-only registry exploration."""
+"""Home Explorer 0.11.0: on-demand, read-only registry exploration."""
 import json
 import os
 import re
@@ -134,6 +134,77 @@ def summarize_entities(entities):
         if len(output) == 3:
             break
     return output
+
+# Explicit local configuration only; never infer electrical wiring from names.
+# Edit power_dependencies.json to confirm relationships before they are displayed.
+DEPENDENCY_FILE = Path('/data/power_dependencies.json')
+
+def load_power_dependencies(path=DEPENDENCY_FILE):
+    try:
+        raw = json.loads(Path(path).read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(raw, dict) or len(raw) > 100:
+        return {}
+    result = {}
+    for name, entity_id in raw.items():
+        if (isinstance(name, str) and isinstance(entity_id, str)
+                and 0 < len(name) <= 90
+                and re.fullmatch(r'switch\\.[a-z0-9_]{1,100}', entity_id)
+                and not PRIVATE_NAME.search(name + ' ' + entity_id)):
+            result[name] = entity_id
+    return result
+
+def save_power_dependencies(mapping, path=DEPENDENCY_FILE):
+    """Atomically persist confirmed wiring only in the add-on's private data."""
+    if not isinstance(mapping, dict) or len(mapping) > 100:
+        raise ValueError('Invalid mapping')
+    for name, entity_id in mapping.items():
+        if (not isinstance(name, str) or not isinstance(entity_id, str)
+                or not 0 < len(name) <= 90
+                or not re.fullmatch(r'switch\.[a-z0-9_]{1,100}', entity_id)
+                or PRIVATE_NAME.search(name + ' ' + entity_id)):
+            raise ValueError('Invalid relationship')
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp = path.with_suffix('.tmp')
+    temp.write_text(json.dumps(mapping, sort_keys=True), encoding='utf-8')
+    temp.replace(path)
+    return len(mapping)
+
+def power_dependency(name, states, dependencies=None):
+    mapping = load_power_dependencies() if dependencies is None else dependencies
+    entity_id = mapping.get(name)
+    if not entity_id:
+        return None
+    state = states.get(entity_id, 'Not available')
+    if state not in ('on', 'off'):
+        state = 'Not available'
+    return {'source': 'Explicitly configured', 'supply_state': state,
+            'interpretation': (
+                'Upstream outlet is off; appliance readings may be unavailable.'
+                if state == 'off' else
+                'Upstream outlet is on; this does not prove appliance operation.'
+                if state == 'on' else
+                'Upstream outlet state could not be confirmed.'
+            )}
+
+def device_diagnostics(entities):
+    """Evidence summary, not an assertion of connectivity or scheduled intent."""
+    if not entities:
+        return {'status':'No readings','available':0,'unavailable':0,'unknown':0}
+    unavailable = sum(e['state'] in ('unavailable','Not available') for e in entities)
+    unknown = sum(e['state'] == 'unknown' for e in entities)
+    available = len(entities) - unavailable - unknown
+    if available and unavailable:
+        status = 'Partially available'
+    elif available:
+        status = 'Readings available'
+    elif unavailable:
+        status = 'Readings unavailable'
+    else:
+        status = 'No current readings'
+    return {'status':status,'available':available,'unavailable':unavailable,'unknown':unknown}
 
 def automation_counts(states):
     """Status counts only: no automation names, rules or identifiers returned."""
@@ -283,6 +354,8 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
             'name': name[:90], 'manufacturer': manufacturer[:75], 'model': model[:75],
             'capabilities': guide, 'entity_count': len(domains), 'ideas': ideas,
             'summary': summarize_entities(domains),
+            'diagnostics': device_diagnostics(domains),
+            'power_dependency': power_dependency(name, safe_states),
             'automation_links': dict(associations.get(device_id, {'trigger':0,'condition':0,'action':0})),
             'observable_categories': sum(1 for k in counts if k in OBSERVATION_DOMAINS),
             'potential_control_categories': sum(1 for k in counts if k in POTENTIAL_CONTROL_DOMAINS),
@@ -300,7 +373,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.10.0', 'mode': 'read-only',
+        'version': '0.11.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
@@ -329,6 +402,8 @@ class Handler(BaseHTTPRequestHandler):
         if self.client_address[0] != GATEWAY:
             return self.reply(403, b'Forbidden', 'text/plain')
         route = self.path.split('?', 1)[0].rstrip('/')
+        if route.endswith('/api/relationships'):
+            return self.reply(200, json.dumps(load_power_dependencies()).encode(), 'application/json')
         if route.endswith('/api/devices'):
             try:
                 data = json.dumps(scan(*registry_request())).encode()
@@ -344,8 +419,28 @@ class Handler(BaseHTTPRequestHandler):
         return self.reply(200, (BASE / 'index.html').read_bytes(), 'text/html; charset=utf-8')
 
     def do_POST(self):
-        return self.reply(405, b'Read-only', 'text/plain')
-    do_PUT = do_PATCH = do_DELETE = do_POST
+        if self.client_address[0] != GATEWAY:
+            return self.reply(403, b'Forbidden', 'text/plain')
+        route = self.path.split('?', 1)[0].rstrip('/')
+        if not route.endswith('/api/relationships'):
+            return self.reply(405, b'Not allowed', 'text/plain')
+        if (self.headers.get('Content-Type', '').split(';')[0].strip() != 'application/json'
+                or self.headers.get('X-Home-Explorer') != 'relationship-update'):
+            return self.reply(415, b'Unsupported request', 'text/plain')
+        try:
+            size = int(self.headers.get('Content-Length', '0'))
+            if not 2 <= size <= 16000:
+                return self.reply(413, b'Invalid request size', 'text/plain')
+            mapping = json.loads(self.rfile.read(size))
+            saved = save_power_dependencies(mapping)
+            return self.reply(200, json.dumps({'saved': saved}).encode(), 'application/json')
+        except (ValueError, TypeError):
+            return self.reply(400, b'Invalid relationship', 'text/plain')
+        except OSError:
+            return self.reply(503, b'Local storage unavailable', 'text/plain')
+    def do_PUT(self):
+        return self.reply(405, b'Not allowed', 'text/plain')
+    do_PATCH = do_DELETE = do_PUT
 
 if __name__ == '__main__':
     ThreadingHTTPServer(('0.0.0.0', PORT), Handler).serve_forever()

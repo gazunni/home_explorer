@@ -49,3 +49,5 @@
 .at-a-glance h4{margin:0 0 8px}
 .glance-line{display:flex;justify-content:space-between;gap:12px;padding:5px 0;flex-wrap:wrap;color:#b4c7d9}
 .glance-line strong{color:#a8e3d8;font-weight:600}
+
+.mapper-section{margin:20px 0;padding:14px;border:1px solid #6b8793;border-radius:12px}.mapper-section select{max-width:100%;padding:10px}.mapper-list,.mapper-sources{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;max-height:220px;overflow:auto;margin:12px 0}.mapper-device,.mapper-source{padding:12px;border:1px solid #7a929a;border-radius:8px;cursor:pointer;text-align:left}.mapped-pair{display:flex;justify-content:space-between;gap:10px;margin:8px 0}.mapper-section button{margin:4px}
