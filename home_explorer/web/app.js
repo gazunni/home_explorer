@@ -214,62 +214,52 @@ get('scan').addEventListener('click', async () => {
   finally {get('scan').disabled = false;}
 });
 
-/* Drag-and-drop and tap-to-connect use the same explicit confirmation flow. */
-function renderMapper() {
-  const root = get('mapper');
-  const sources = get('map-source');
-  if (!root || !sources) return;
-  const sourceChoices = [];
+
+/* Compact touch-first relationship editor. No nested scrolling or drag requirement. */
+function mapperChoices() {
+  const sources = [];
   for (const d of devices) {
     if (d.virtual) continue;
-    for (const cap of d.capabilities)
-      if (cap.domain === 'switch') for (const m of cap.members)
-        sourceChoices.push({id:m.entity_id, label:d.name + ' · ' + m.name});
-  }
-  sources.replaceChildren(new Option('Choose smart outlet…', ''));
-  for (const src of sourceChoices) sources.append(new Option(src.label, src.id));
-  sources.value = selectedSource;
-  const list = elem('div', undefined, 'mapper-list');
-  const names = devices.filter(d => !d.virtual).map(d => d.name);
-  for (const d of devices.filter(d => !d.virtual)) {
-    const item = elem('button', d.name, 'mapper-device');
-    item.type = 'button';
-    item.title = 'Select as target appliance';
-    item.addEventListener('click', () => proposeRelationship(d.name));
-    item.addEventListener('dragover', event => event.preventDefault());
-    item.addEventListener('drop', event => {
-      event.preventDefault();
-      const dragged = event.dataTransfer.getData('text/plain');
-      if (sourceChoices.some(s => s.id === dragged)) {
-        selectedSource = dragged;
-        sources.value = dragged;
-        proposeRelationship(d.name);
+    for (const cap of d.capabilities) {
+      if (cap.domain !== 'switch') continue;
+      for (const m of cap.members || []) {
+        if (m.entity_id.startsWith('switch.'))
+          sources.push({id:m.entity_id, label:d.name + ' · ' + m.name, owner:d.name});
       }
-    });
-    list.append(item);
+    }
   }
-  const draggable = elem('div', undefined, 'mapper-sources');
-  for (const src of sourceChoices) {
-    const chip = elem('button', '↗ ' + src.label, 'mapper-source');
-    chip.type = 'button';
-    chip.draggable = true;
-    chip.addEventListener('dragstart', event => {
-      selectedSource = src.id;
-      event.dataTransfer.setData('text/plain', src.id);
-    });
-    chip.addEventListener('click', () => {
-      selectedSource = src.id;
-      sources.value = src.id;
-      get('map-status').textContent = 'Tap a target appliance below, or drag this outlet onto it.';
-    });
-    draggable.append(chip);
+  return sources;
+}
+function renderMapper() {
+  const sourceSelect = get('map-source');
+  const targetSelect = get('map-target-select');
+  const query = get('map-search').value.trim().toLocaleLowerCase();
+  const oldTarget = targetSelect.value;
+  const sources = mapperChoices();
+  sourceSelect.replaceChildren(new Option('Choose a smart outlet…', ''));
+  for (const source of sources)
+    sourceSelect.append(new Option(source.label, source.id));
+  sourceSelect.value = sources.some(s => s.id === selectedSource) ? selectedSource : '';
+  selectedSource = sourceSelect.value;
+  targetSelect.replaceChildren(new Option('Choose an appliance…', ''));
+  const names = devices.filter(d => !d.virtual && d.name.toLocaleLowerCase().includes(query));
+  const unique = new Set();
+  for (const d of names) {
+    if (unique.has(d.name)) continue;
+    unique.add(d.name);
+    if (devices.filter(x => !x.virtual && x.name === d.name).length !== 1) continue;
+    targetSelect.append(new Option(d.name, d.name));
   }
-  root.replaceChildren(draggable, list);
+  if ([...targetSelect.options].some(o => o.value === oldTarget))
+    targetSelect.value = oldTarget;
   const existing = get('map-existing');
   existing.replaceChildren();
-  for (const [target, source] of Object.entries(mappings)) {
+  const entries = Object.entries(mappings);
+  get('map-count').textContent = entries.length + ' saved';
+  for (const [target, source] of entries) {
     const line = elem('div', undefined, 'mapped-pair');
-    line.append(elem('span', target + ' ← ' + source));
+    const displaySource = sources.find(x => x.id === source);
+    line.append(elem('span', (displaySource ? displaySource.label : 'Unavailable source') + ' → ' + target));
     const remove = elem('button', 'Remove');
     remove.type = 'button';
     remove.addEventListener('click', () => {
@@ -280,52 +270,51 @@ function renderMapper() {
     line.append(remove);
     existing.append(line);
   }
-}
-function proposeRelationship(target) {
-  if (!selectedSource) {
-    get('map-status').textContent = 'Choose a source outlet first.';
-    return;
-  }
-  if (devices.filter(d => d.name === target).length !== 1) {
-    get('map-status').textContent = 'Target name is ambiguous; cannot map safely.';
-    return;
-  }
-  const sourceDevice = devices.find(d => d.capabilities.some(c =>
-    c.members.some(m => m.entity_id === selectedSource)));
-  if (sourceDevice && sourceDevice.name === target) {
-    get('map-status').textContent = 'Choose a different appliance from the source outlet device.';
-    return;
-  }
-  proposedTarget = target;
-  get('map-target').textContent = target;
-  get('map-proposal').hidden = false;
-  get('map-status').textContent = 'Confirm the actual electrical wiring before saving.';
+  get('map-empty').hidden = entries.length > 0;
 }
 async function persistMappings(next) {
   const root = location.href.split('?')[0].replace(/\/?$/, '/');
   try {
     const response = await fetch(new URL('api/relationships', root), {
       method:'POST', credentials:'same-origin',
-      headers:{'Content-Type':'application/json', 'X-Home-Explorer':'relationship-update'},
+      headers:{'Content-Type':'application/json','X-Home-Explorer':'relationship-update'},
       body:JSON.stringify(next)
     });
     if (!response.ok) throw new Error('Save failed (HTTP ' + response.status + ')');
     mappings = next;
-    proposedTarget = '';
-    selectedSource = '';
     get('map-proposal').hidden = true;
-    get('map-status').textContent = 'Saved locally. Scan again to refresh diagnostics.';
+    get('map-status').textContent = 'Relationship saved locally. Rescan to update device diagnostics.';
     renderMapper();
-  } catch (error) { get('map-status').textContent = error.message; }
+  } catch (error) {
+    get('map-status').textContent = error.message;
+  }
 }
-get('map-source').addEventListener('change', value => {
-  selectedSource = value.target.value;
-  get('map-status').textContent = selectedSource ?
-    'Tap the appliance below, or drag an outlet onto it.' : 'Choose a source outlet.';
+get('map-source').addEventListener('change', event => {
+  selectedSource = event.target.value;
+  get('map-proposal').hidden = true;
+});
+get('map-search').addEventListener('input', renderMapper);
+get('map-add').addEventListener('click', () => {
+  const target = get('map-target-select').value;
+  const source = get('map-source').value;
+  const choices = mapperChoices();
+  if (!source || !target) {
+    get('map-status').textContent = 'Choose both a smart outlet and an appliance.';
+    return;
+  }
+  const owner = choices.find(x => x.id === source);
+  if (!owner || owner.owner === target) {
+    get('map-status').textContent = 'Select a valid outlet and a different target appliance.';
+    return;
+  }
+  proposedTarget = target;
+  get('map-target').textContent = target;
+  get('map-source-label').textContent = owner.label;
+  get('map-proposal').hidden = false;
 });
 get('map-confirm').addEventListener('click', () => {
-  if (selectedSource && proposedTarget)
-    persistMappings({...mappings, [proposedTarget]:selectedSource});
+  if (proposedTarget && selectedSource)
+    persistMappings({...mappings,[proposedTarget]:selectedSource});
 });
 get('map-cancel').addEventListener('click', () => {
   proposedTarget = '';
