@@ -1,4 +1,4 @@
-"""Home Explorer 0.8.0: on-demand, read-only registry exploration."""
+"""Home Explorer 0.10.0: on-demand, read-only registry exploration."""
 import json
 import os
 import re
@@ -44,7 +44,10 @@ def registry_request():
             if not isinstance(message.get('result'), list):
                 raise RuntimeError('Unexpected registry result')
             result.append(message['result'])
-        return result
+        ws.send(json.dumps({'id': 4, 'type': 'get_services'}))
+        response = json.loads(ws.recv(timeout=15))
+        services = response.get('result', {}) if response.get('id') == 4 and response.get('success') else {}
+        return (*result, services if isinstance(services, dict) else {})
 
 # Descriptions are grounded only in domain semantics, never inferred vendor commands.
 CAPABILITY_GUIDE = {
@@ -114,10 +117,43 @@ def summarize_entities(entities):
             break
     return output
 
-def scan(devices, entities, states=None):
+def automation_counts(states):
+    """Status counts only: no automation names, rules or identifiers returned."""
+    rows = [s for s in (states or []) if isinstance(s, dict)
+            and isinstance(s.get('entity_id'), str)
+            and s['entity_id'].startswith('automation.')]
+    counts = Counter(s.get('state', 'unknown') for s in rows)
+    return {'total': len(rows), 'enabled': counts.get('on', 0),
+            'disabled': counts.get('off', 0),
+            'other': len(rows)-counts.get('on', 0)-counts.get('off', 0)}
+
+def scan(devices, entities, states=None, services=None):
     if len(devices) > MAX_DEVICES or len(entities) > MAX_ENTITIES:
         raise RuntimeError('Registry exceeds safety limit')
     by_device = defaultdict(list)
+    states = states or []
+    catalog = {}
+    if isinstance(services, dict):
+        for domain, entries in services.items():
+            if domain in ALLOWED_DOMAINS and isinstance(entries, dict):
+                catalog[domain] = sorted(k for k in entries
+                    if isinstance(k, str) and re.fullmatch(r'[a-z_]{1,50}', k))[:40]
+    metadata = {}
+    for item in states:
+        if not isinstance(item, dict):
+            continue
+        eid = item.get('entity_id')
+        attrs = item.get('attributes')
+        if not isinstance(eid, str) or not isinstance(attrs, dict):
+            continue
+        flags = attrs.get('supported_features')
+        opts = attrs.get('options')
+        metadata[eid] = {
+            'supported_features': flags if type(flags) is int and 0 <= flags <= 2147483647 else None,
+            'options': [v for v in opts[:20]
+                        if isinstance(v, str) and len(v) <= 60 and not PRIVATE_NAME.search(v)]
+                       if isinstance(opts, list) else []}
+
     safe_states = {}
     for item in (states or []):
         if not isinstance(item, dict):
@@ -138,7 +174,8 @@ def scan(devices, entities, states=None):
             continue
         if domain in ALLOWED_DOMAINS and entity.get('disabled_by') is None:
             by_device[dev].append({'domain': domain, 'entity_id': entity_id,
-                                   'label': label[:90], 'state': safe_states.get(entity_id, 'Not available')})
+                                   'label': label[:90], 'state': safe_states.get(entity_id, 'Not available'),
+                                   'metadata': metadata.get(entity_id, {})})
     # Internal registry keys are used only for grouping and are NEVER returned to the browser.
     lookup = {d['id']: d for d in devices if isinstance(d, dict) and isinstance(d.get('id'), str)}
     visible = {}
@@ -169,8 +206,11 @@ def scan(devices, entities, states=None):
             'entities': n,
             'explanation': CAPABILITY_GUIDE[k][1],
             'access': 'Information only' if k in OBSERVATION_DOMAINS else 'Potential control',
-            'members': [{'name': e['label'], 'entity_id': e['entity_id'], 'state': e['state'], 'domain': e['domain']}
+            'members': [{'name': e['label'], 'entity_id': e['entity_id'], 'state': e['state'], 'domain': e['domain'],
+                        'supported_features': e['metadata'].get('supported_features'),
+                        'options': e['metadata'].get('options', [])}
                         for e in domains if e['domain'] == k][:100],
+            'domain_services': catalog.get(k, []),
             'verification': ('Read-only state/measurement category.'
                              if k in OBSERVATION_DOMAINS else
                              'Entity category suggests a possible control. Actual services, permissions, '
@@ -203,6 +243,7 @@ def scan(devices, entities, states=None):
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
+        'automations': automation_counts(states),
         'devices': result[:500],
         'note': 'Potential control does not establish an executable command. Whether a feature requires a manufacturer app cannot be determined from registry data. Suggestions are examples only; device commands and current automations have not been verified.'
     }
