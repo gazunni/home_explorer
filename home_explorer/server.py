@@ -1,4 +1,4 @@
-"""Home Explorer 0.7.0: on-demand, read-only registry exploration."""
+"""Home Explorer 0.8.0: on-demand, read-only registry exploration."""
 import json
 import os
 import re
@@ -82,6 +82,38 @@ IDEAS = {
     'switch': ('Power schedules', 'Review off-hours schedules for nonessential loads; avoid critical equipment.'),
 }
 
+# Compact summaries use only explicitly registered, non-private entities.
+# A summary is a snapshot, never a claim that an action is executable.
+SUMMARY_PRIORITY = (
+    ('current_status', 'Current status'), ('operating_state', 'Operating state'),
+    ('remaining_time', 'Remaining time'), ('current_temperature', 'Temperature'),
+    ('temperature', 'Temperature'), ('humidity', 'Humidity'),
+    ('battery', 'Battery'), ('power', 'Power'), ('energy', 'Energy'),
+)
+def summarize_entities(entities):
+    candidates = []
+    for e in entities:
+        entity_id = e['entity_id']
+        suffix = entity_id.split('.', 1)[1]
+        label = e['label']
+        if e['state'] in ('Not available', 'unknown', 'unavailable'):
+            continue
+        for pos, (keyword, title) in enumerate(SUMMARY_PRIORITY):
+            if suffix.endswith(keyword) or suffix.endswith(keyword + '_status'):
+                candidates.append((pos, title, e['state'], e['domain']))
+                break
+    candidates.sort(key=lambda x: x[0])
+    output = []
+    seen = set()
+    for _, title, state, domain in candidates:
+        if title in seen:
+            continue
+        output.append({'label': title, 'state': state, 'domain': domain})
+        seen.add(title)
+        if len(output) == 3:
+            break
+    return output
+
 def scan(devices, entities, states=None):
     if len(devices) > MAX_DEVICES or len(entities) > MAX_ENTITIES:
         raise RuntimeError('Registry exceeds safety limit')
@@ -150,6 +182,7 @@ def scan(devices, entities, states=None):
         visible[device_id] = {
             'name': name[:90], 'manufacturer': manufacturer[:75], 'model': model[:75],
             'capabilities': guide, 'entity_count': len(domains), 'ideas': ideas,
+            'summary': summarize_entities(domains),
             'observable_categories': sum(1 for k in counts if k in OBSERVATION_DOMAINS),
             'potential_control_categories': sum(1 for k in counts if k in POTENTIAL_CONTROL_DOMAINS),
             'kind': 'Energy-monitor detection' if is_virtual else 'Registered device',
@@ -166,7 +199,7 @@ def scan(devices, entities, states=None):
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.7.0', 'mode': 'read-only',
+        'version': '0.8.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
