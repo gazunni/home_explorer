@@ -150,7 +150,7 @@ def load_power_dependencies(path=DEPENDENCY_FILE):
     for name, entity_id in raw.items():
         if (isinstance(name, str) and isinstance(entity_id, str)
                 and 0 < len(name) <= 90
-                and re.fullmatch(r'switch\\.[a-z0-9_]{1,100}', entity_id)
+                and re.fullmatch(r'switch\.[a-z0-9_]{1,100}', entity_id)
                 and not PRIVATE_NAME.search(name + ' ' + entity_id)):
             result[name] = entity_id
     return result
