@@ -1,0 +1,17 @@
+name: Home Explorer
+slug: home_explorer
+description: Read-only discovery of Home Assistant entity categories
+version: 0.1.0
+arch:
+  - aarch64
+init: false
+startup: application
+boot: manual
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:home-search
+panel_title: Home Explorer
+homeassistant_api: true
+hassio_role: default
+host_network: false
+protected: true
