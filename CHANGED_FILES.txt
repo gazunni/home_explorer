@@ -1,17 +1,13 @@
-Home Explorer v0.3.0 — tested source synchronization to GitHub
-README.md
-DEPLOYED.md
-INSTALLATION.md
-CHANGED_FILES.txt
-PROJECT_TREE.txt
-home_explorer/config.yaml
-home_explorer/Dockerfile
+Home Explorer v0.4.0
 home_explorer/server.py
-home_explorer/web/index.html
+home_explorer/config.yaml
 home_explorer/web/app.js
+home_explorer/web/index.html
 home_explorer/web/style.css
 home_explorer/tests/test_discovery.py
-
-.env.example: UNCHANGED
-repository.yaml: GitHub repository URL added for native app discovery
-REPOSITORY_UPDATES.md: ADDED
+README.md
+DEPLOYED.md
+CHANGED_FILES.txt
+PROJECT_TREE.txt
+INSTALLATION.md
+.env.example unchanged
