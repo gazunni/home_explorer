@@ -1,4 +1,4 @@
-"""Home Explorer 0.10.0: on-demand, read-only registry exploration."""
+"""Home Explorer 0.11.0: on-demand, read-only registry exploration."""
 import json
 import os
 import re
@@ -134,6 +134,23 @@ def summarize_entities(entities):
         if len(output) == 3:
             break
     return output
+
+def device_diagnostics(entities):
+    """Evidence summary, not an assertion of connectivity or scheduled intent."""
+    if not entities:
+        return {'status':'No readings','available':0,'unavailable':0,'unknown':0}
+    unavailable = sum(e['state'] in ('unavailable','Not available') for e in entities)
+    unknown = sum(e['state'] == 'unknown' for e in entities)
+    available = len(entities) - unavailable - unknown
+    if available and unavailable:
+        status = 'Partially available'
+    elif available:
+        status = 'Readings available'
+    elif unavailable:
+        status = 'Readings unavailable'
+    else:
+        status = 'No current readings'
+    return {'status':status,'available':available,'unavailable':unavailable,'unknown':unknown}
 
 def automation_counts(states):
     """Status counts only: no automation names, rules or identifiers returned."""
@@ -283,6 +300,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
             'name': name[:90], 'manufacturer': manufacturer[:75], 'model': model[:75],
             'capabilities': guide, 'entity_count': len(domains), 'ideas': ideas,
             'summary': summarize_entities(domains),
+            'diagnostics': device_diagnostics(domains),
             'automation_links': dict(associations.get(device_id, {'trigger':0,'condition':0,'action':0})),
             'observable_categories': sum(1 for k in counts if k in OBSERVATION_DOMAINS),
             'potential_control_categories': sum(1 for k in counts if k in POTENTIAL_CONTROL_DOMAINS),
@@ -300,7 +318,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.10.0', 'mode': 'read-only',
+        'version': '0.11.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
