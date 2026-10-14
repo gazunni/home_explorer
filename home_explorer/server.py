@@ -289,6 +289,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         eid, value = item.get('entity_id'), item.get('state')
         if isinstance(eid, str) and isinstance(value, str) and len(value) <= 80 and eid.split('.', 1)[0] in ALLOWED_DOMAINS:
             safe_states[eid] = value
+    confirmed_dependencies = load_power_dependencies()
     for entity in entities:
         if not isinstance(entity, dict):
             continue
@@ -355,7 +356,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
             'capabilities': guide, 'entity_count': len(domains), 'ideas': ideas,
             'summary': summarize_entities(domains),
             'diagnostics': device_diagnostics(domains),
-            'power_dependency': power_dependency(name, safe_states),
+            'power_dependency': power_dependency(name, safe_states, confirmed_dependencies),
             'automation_links': dict(associations.get(device_id, {'trigger':0,'condition':0,'action':0})),
             'observable_categories': sum(1 for k in counts if k in OBSERVATION_DOMAINS),
             'potential_control_categories': sum(1 for k in counts if k in POTENTIAL_CONTROL_DOMAINS),
@@ -373,7 +374,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.11.0', 'mode': 'read-only',
+        'version': '0.12.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
