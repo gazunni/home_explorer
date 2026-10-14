@@ -1,28 +1,23 @@
-# Home Explorer v0.3.0 — Plain-Language Discovery
+# Home Explorer v0.4.0 — Capability Clarity
 
-Runs as a **local Home Assistant Green app** through authenticated Ingress. No external hosting or browser API token.
+Home Explorer runs locally on Home Assistant Green through authenticated Ingress. It reads device and entity registries when requested, without operating devices.
 
-## What's new
-- Distinguish Sense virtual energy-monitor detections from HA registered equipment. The new filter defaults to excluding Sense detections; they remain viewable.
-- Identify related child components using Home Assistant's `via_device_id` parent relationship when available (for example, some robot vacuum docks).
-- Explain entity categories in plain language; expand a card to view descriptions.
-- Offer conditional, read-only automation ideas **not** represented as existing automations or guaranteed actions.
-- Search by device, manufacturer, model, parent or exposed feature.
-- Expanded name filtering for some personal names. Filtering is heuristic, NOT full anonymization.
+## v0.4.0
+- Each card distinguishes **Information only** categories (sensors and binary sensors) from **Potential control** entity categories.
+- Possible controls are explicitly **not verified** against live services, permissions, feature flags or device states.
+- Manufacturer-app-only functions are marked **unknown**. Home Assistant registry data alone cannot reveal a manufacturer's full feature catalogue.
+- Existing Sense detections, parent relationships, search and read-only suggestions remain.
 
-## Safety and limitations
-- Uses Home Assistant WebSocket through Supervisor inside Green; app has no direct host networking and no device-control endpoints.
-- Supervisor token remains high privilege despite this app only issuing two registry read queries.
-- Does not inspect automation definitions, current states, area assignments or vendor command details.
-- No data export, analytics, external assets or background polling.
-- Sense virtual detection classification is based on exactly matching the known manufacturer/model metadata and may miss other virtual detections.
-- Multiple similar-looking physical devices are NOT automatically merged based on name alone.
-- The user-facing privacy filter does not guarantee redaction of identifying names. Do not share screenshots as anonymized.
+## Security and accuracy limitations
+- No manufacturer research/API calls, no command execution, no cloud uploads.
+- No current states, entity service capabilities, vendor app features, existing automation code or device-specific permission checks.
+- A switch, light or vacuum entity may be a potential control but its real available actions are not guaranteed.
+- A device feature not represented in HA cannot automatically be classified as vendor-only.
+- Name filtering is heuristic and **does not anonymize screenshots**.
+- Supervisor credentials stay server-side but are high privilege. The code makes only registry read requests.
 
-## Repository-based installation
-Home Assistant can register this public GitHub repository as an app source. Read `REPOSITORY_UPDATES.md` before installing. The current user-confirmed deployment is a separate /local_apps installation; **do not remove or overwrite the working app without a migration plan**.
+## Updating Green
+Your GitHub-managed Home Explorer installation is the repository app (not /local_apps). After Home Assistant refreshes the app repository, v0.4.0 should be offered as an update. Leave Auto update off during development, review release notes, and make sure a backup exists before updating.
 
-## v0.3.0 deployment status
-Home Assistant Green: user-confirmed running, discovery and interface verified on October 14, 2026.
-
-Tests: offline Python unit tests + syntax verification.
+## Verification
+Run `python -m unittest discover -s home_explorer/tests` with the `home_explorer` directory on PYTHONPATH and websockets installed. Run `python -m py_compile home_explorer/server.py` and `node --check home_explorer/web/app.js`.
