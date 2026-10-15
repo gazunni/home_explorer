@@ -522,16 +522,24 @@ function renderDependencies() {
     return;
   }
   for (const [target, sourceId] of entries) {
-    const targetDevice = devices.find(d => d.device_key === target) ||
-      (devices.filter(d => d.name === target).length === 1 ? devices.find(d => d.name === target) : null);
+    const exact = devices.find(d => d.device_key === target);
+    const legacyMatches = exact ? [] : devices.filter(d => d.name === target);
+    const targetDevice = exact || (legacyMatches.length === 1 ? legacyMatches[0] : null);
+    // The saved legacy label may identify an appliance even if several registry
+    // registrations share that name. Never invent which one owns the mapping.
+    const ambiguous = !exact && legacyMatches.length > 1;
+    const legacyLabel = /^[A-Za-z0-9][A-Za-z0-9 _().-]{0,89}$/.test(target) ?
+      target : 'Saved appliance (not matched in this scan)';
     const outlet = sources.find(s => s.id === sourceId);
     const line = elem('div', undefined, 'dependency-item');
-    const targetLabel = targetDevice ? targetDevice.name : 'Saved appliance (not matched in this scan)';
-    const sourceLabel = outlet ? outlet.device.name : 'Saved outlet (not matched in this scan)';
+    const targetLabel = targetDevice ? targetDevice.name : legacyLabel;
+    const sourceLabel = outlet ? shortOutlet(outlet) : 'Saved outlet (not matched in this scan)';
     line.append(elem('strong', sourceLabel + ' → ' + targetLabel));
     line.append(elem('p', 'Physical outlet-to-appliance relationship: homeowner-confirmed mapping.', 'dependency-evidence'));
     if (!targetDevice) {
-      line.append(elem('p', 'Appliance could not be uniquely matched in the current visible registry; no status inferred.', 'dependency-caution'));
+      line.append(elem('p', ambiguous ?
+        'Several registered devices share this saved appliance name; specific device state and automation roles cannot be attributed safely.' :
+        'Appliance could not be uniquely matched in the current visible registry; no status inferred.', 'dependency-caution'));
     } else {
       const state = targetDevice.power_dependency && targetDevice.power_dependency.supply_state;
       const label = state === 'off' ? 'Outlet reported off; appliance supply may be unavailable.' :
