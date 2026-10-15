@@ -215,7 +215,7 @@ async function refreshDevices() {
   if (scanInProgress) return;
   scanInProgress = true;
   get('scan').disabled = true;
-  get('status').textContent = 'Reading device and entity registries locally…';
+  get('scan-notice').hidden = true;
   get('scan-state').textContent = 'Scanning…';
   try {
     const root = location.href.split('?')[0].replace(/\/?$/, '/');
@@ -237,10 +237,10 @@ async function refreshDevices() {
     get('automation-checked').textContent = automation.lookup_attempted != null ? String(automation.configurations_checked ?? 0) + '/' + String(automation.lookup_attempted) : '—';
     get('privacy-count').textContent = String(data.hidden_private_devices ?? 0);
     get('scan-state').textContent = 'Scan complete';
-    if (data.automations && get('automation-status')) {
+    if (data.automations && false) {
       const a = data.automations;
       const incomplete = a.configurations_checked < a.lookup_attempted;
-      get('automation-status').textContent = 'Existing automations: ' + a.total + ' detected · ' + a.enabled +
+      get('scan-notice').textContent = 'Existing automations: ' + a.total + ' detected · ' + a.enabled +
         ' enabled · ' + a.disabled + ' disabled · ' + a.other +
         ' other · ' + a.configurations_checked + ' of ' + a.lookup_attempted +
         ' eligible configurations checked.' + (incomplete ? ' Partial analysis: some automation definitions were unavailable.' : '') +
@@ -255,7 +255,7 @@ async function refreshDevices() {
     get('status').textContent = 'Discovery complete. ' + data.hidden_private_devices +
       ' sensitive-name entries filtered. No devices or automations were changed.';
     render();
-  } catch (error) {get('status').textContent = 'Scan unavailable: ' + error.message; get('scan-state').textContent = 'Scan failed'; get('overview').querySelector('.overview-details').open = true;}
+  } catch (error) {get('status').textContent = 'Scan unavailable: ' + error.message; get('scan-state').textContent = 'Scan failed'; get('scan-notice').hidden = false;}
   finally {get('scan').disabled = false; scanInProgress = false;}
 }
 get('scan').addEventListener('click', refreshDevices);
