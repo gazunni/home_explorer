@@ -329,28 +329,62 @@ function readingsForSource(source) {
       socketMatch:(source.device.socket_meter_candidate_ids || []).includes(source.id)};
   return {readings:source.device.electrical || [], candidate:false};
 }
+// Readings reflect the last value reported by Home Assistant, not a live electrical test.
+// last_updated may predate a switch's last_changed; never present those readings as
+// confirmation of current load. Old timestamps do not, by themselves, indicate faults.
+function readingEvidence(reading, switchChanged) {
+  const timestamp = Date.parse(reading.last_updated || '');
+  const age = Number.isFinite(timestamp) ? (Date.now() - timestamp) / 60000 : NaN;
+  const changed = Date.parse(switchChanged || '');
+  const beforeSwitch = Number.isFinite(timestamp) && Number.isFinite(changed) && timestamp < changed - 1000;
+  if (beforeSwitch) return {label:'Before switch change', className:'mapped-caution', current:false};
+  if (!Number.isFinite(age) || age < -2) return {label:'Update time unknown', className:'mapped-caution', current:false};
+  if (age > 60) return {label:'Older observation', className:'mapped-caution', current:false};
+  if (age > 15) return {label:'Aging observation', className:'mapped-caution', current:false};
+  return {label:'Recent observation', className:'mapped-recent', current:true};
+}
 function readingAge(reading) {
   const time = Date.parse(reading.last_updated || '');
-  return Number.isFinite(time) ? Math.max(0, Math.round((Date.now() - time) / 60000)) + 'm ago' : 'time unknown';
+  const minutes = Number.isFinite(time) ? (Date.now() - time)/60000 : NaN;
+  return Number.isFinite(minutes) && minutes >= -2 ? Math.max(0, Math.round(minutes)) + 'm ago' : 'time unknown';
+}
+function powerEvidence(source) {
+  const member = source.device.capabilities.flatMap(c => c.members || []).find(m => m.entity_id === source.id);
+  const state = member ? member.state : 'unknown';
+  const changed = member && member.last_changed;
+  const group = readingsForSource(source);
+  const measurements = group.readings.map(reading => ({reading, evidence:readingEvidence(reading, changed)}));
+  const usablePower = measurements.find(x => x.reading.kind === 'power' && x.evidence.current);
+  let interpretation;
+  if (state === 'off') interpretation = 'Outlet reported off; supply disabled. Meter readings may still report input voltage.';
+  else if (state !== 'on') interpretation = 'Outlet state unknown. No conclusion about electrical supply or operation.';
+  else if (!usablePower) interpretation = 'Outlet enabled; no recent power observation that postdates the last switch change.';
+  else {
+    const watts = usablePower.reading.unit === 'kW' ? usablePower.reading.value * 1000 : usablePower.reading.value;
+    interpretation = watts > 0.2 ?
+      'Outlet enabled and electrical consumption observed; this does not establish appliance operation.' :
+      'Outlet enabled; no measurable load in the recent power observation (standby or idle possible).';
+  }
+  return {state, changed, group, measurements, interpretation};
 }
 function sourceSnapshot(source) {
-  const owner = source.device;
-  const matches = owner.capabilities.flatMap(c => c.members || []).filter(m => m.entity_id === source.id);
-  const current = matches.length ? matches[0].state : 'Not available';
-  const sw = current === 'on' ? 'On (reported)' : current === 'off' ? 'Off (reported)' : 'Unknown';
-  const observations = ['Switch: ' + sw];
-  const group = readingsForSource(source);
-  for (const reading of group.readings)
-    observations.push(reading.kind + ': ' + reading.value + ' ' + reading.unit + ' (' + readingAge(reading) + ')' +
-      (group.socketMatch ? ' · registry-linked socket candidate' : group.candidate ? ' · ID-match candidate, not confirmed' : ''));
-  if (group.readings.length)
-    observations.push(group.candidate ?
-      (group.socketMatch ?
-        'These measurements belong to a TP-Link socket registered beneath the strip, uniquely matched to this switch by its complete socket name. Verify the pairing in Home Assistant.' :
-        'These sensors share the exact outlet entity-ID stem. Attribution is a candidate only; verify in Home Assistant before relying on it.') :
-      'Electrical readings are observations, not proof of appliance operation. They may lag the switch state.');
-  else
-    observations.push((owner.electrical_note || 'Electrical measurements were not attributed.') + ' No attributable meter readings were found for this outlet.');
+  const evidence = powerEvidence(source);
+  const observed = evidence.state === 'on' ? 'On' : evidence.state === 'off' ? 'Off' : 'Unknown';
+  const observations = ['Switch: ' + observed + ' (reported)', evidence.interpretation];
+  for (const {reading, evidence:status} of evidence.measurements)
+    observations.push(reading.kind + ': ' + reading.value + ' ' + reading.unit +
+      ' (last reported ' + readingAge(reading) + ' · ' + status.label + ')' +
+      (evidence.group.socketMatch ? ' · registry-linked socket match' :
+        evidence.group.candidate ? ' · ID-match candidate, not confirmed' : ''));
+  if (evidence.group.readings.length) {
+    observations.push(evidence.group.candidate ?
+      (evidence.group.socketMatch ?
+       'Sensors belong to a TP-Link socket registered beneath this strip and uniquely name-matched to this outlet. Check pairing in Home Assistant.' :
+       'Sensor IDs uniquely match this switch name; verify pairing in Home Assistant.') :
+       'Measurements are observations, not proof that the connected appliance is running.');
+  } else observations.push((source.device.electrical_note || 'No attributed meter data.') +
+                           ' No outlet-level electrical observations found.');
+  observations.push('Old or unchanged sensor values alone do not demonstrate connectivity failure.');
   return observations;
 }
 /* Compact touch-first relationship editor. No nested scrolling or drag requirement. */
@@ -407,19 +441,16 @@ function renderMapper() {
     left.append(elem('strong', sourceText + ' → ' + targetText));
     if (displaySource) {
       const summary = elem('div', undefined, 'mapped-summary');
-      const row = displaySource.device.capabilities.flatMap(c => c.members || []).find(m => m.entity_id === displaySource.id);
-      const reported = row ? row.state : null;
-      const statePill = elem('span', reported === 'on' ? 'On' : reported === 'off' ? 'Off' : 'Unknown', 'mapped-pill');
-      summary.append(statePill);
-      const group = readingsForSource(displaySource);
-      if (group.readings.length) {
-        for (const reading of group.readings) {
-          const pill = elem('span', reading.value + ' ' + reading.unit +
-            (group.socketMatch ? ' · socket match' : group.candidate ? ' · candidate' : '') + ' · ' + readingAge(reading), 'mapped-pill');
-          summary.append(pill);
-        }
+      const e = powerEvidence(displaySource);
+      summary.append(elem('span', e.state === 'on' ? 'Outlet On' : e.state === 'off' ? 'Outlet Off' : 'Outlet Unknown', 'mapped-pill'));
+      for (const {reading, evidence:status} of e.measurements) {
+        const label = (status.current ? '' : 'Last: ') + reading.value + ' ' + reading.unit +
+          ' · ' + readingAge(reading) +
+          (status.current ? '' : ' · ' + status.label.toLowerCase());
+        summary.append(elem('span', label, 'mapped-pill ' + status.className));
       }
       left.append(summary);
+      left.append(elem('div', e.interpretation, 'mapped-interpretation'));
     }
     const detail = document.createElement('details');
     detail.className = 'mapped-technical';
