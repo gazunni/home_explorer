@@ -275,6 +275,46 @@ def registry_classification(name, manufacturer, model, disabled_by, entity_total
     return 'Review', 'Inspect this registration in Home Assistant.'
 
 
+def outlet_meter_candidates(switches, entities):
+    """Offer only uniquely matched same-device meter candidates; never certify wiring.
+
+    Require the *entire* switch entity suffix plus a measurement suffix, rather than
+    vague name similarity. Each sensor must belong to exactly one outlet candidate.
+    """
+    meters = []
+    for e in entities:
+        if e.get('domain') != 'sensor':
+            continue
+        meta = e.get('metadata', {})
+        kind, unit = meta.get('device_class'), meta.get('unit')
+        if (kind, unit) not in (('power', 'W'), ('power', 'kW'),
+                                ('current', 'A'), ('current', 'mA'),
+                                ('voltage', 'V')):
+            continue
+        try:
+            value = float(e['state'])
+            if not -1000000 < value < 1000000:
+                continue
+        except (ValueError, TypeError, KeyError):
+            continue
+        meters.append((e, kind, unit, value))
+    matched = defaultdict(list)
+    for meter, kind, unit, value in meters:
+        suffix = meter['entity_id'].split('.', 1)[-1]
+        owners = []
+        for switch in switches:
+            stem = switch['entity_id'].split('.', 1)[-1]
+            if suffix.startswith(stem + '_') and suffix[len(stem)+1:] in (
+                    'power', 'current_consumption', 'active_power', 'current',
+                    'voltage', 'power_consumption'):
+                owners.append(switch['entity_id'])
+        if len(owners) == 1:
+            matched[owners[0]].append({
+                'kind': kind, 'value': value, 'unit': unit,
+                'last_updated': meter.get('metadata', {}).get('last_updated')})
+    return {key: values[:3] for key, values in matched.items()}
+
+
 def scan(devices, entities, states=None, services=None, configurations=None, attempted=0):
     if len(devices) > MAX_DEVICES or len(entities) > MAX_ENTITIES:
         raise RuntimeError('Registry exceeds safety limit')
@@ -418,6 +458,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
                  if k in counts][:2]
         public_key = 'device:' + hashlib.sha256(device_id.encode('utf-8')).hexdigest()[:24]
         electrical = []
+        outlet_candidates = {}
         # Only the owning device can report these measurements. For multi-outlet
         # strips, these cannot safely be attributed to any particular outlet.
         # Ignore configuration and diagnostic switches (e.g. EP25 LED).
@@ -431,6 +472,8 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
                            ' normal switches share this registry device.'
                            if switch_count > 1 else
                            'No normal outlet switch identified on this registry device.')
+        if switch_count > 1:
+            outlet_candidates = outlet_meter_candidates(outlet_switches, domains)
         if switch_count == 1:
             for entry in domains:
                 if entry['domain'] != 'sensor':
@@ -456,6 +499,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         visible[device_id] = {
             'device_key': public_key,
             'electrical': electrical,
+            'outlet_meter_candidates': outlet_candidates,
             'electrical_note': electrical_note,
             'name': name[:90], 'manufacturer': manufacturer[:75], 'model': model[:75],
             'capabilities': guide, 'entity_count': len(domains), 'ideas': ideas,
@@ -479,7 +523,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.13.6', 'mode': 'read-only',
+        'version': '0.13.7', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,

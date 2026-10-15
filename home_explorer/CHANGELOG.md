@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.13.7] — 2026-10-15
+- Add compact switch-state and timestamped electrical badges directly to saved connections.
+- Find *candidate* HS300 outlet readings only when unique same-device sensor IDs share an entire outlet stem and a recognized measurement suffix; mark these unverified, never assert the physical load from identifiers.
+- Keep shared strip readings unassigned and all Home Assistant access read-only.
+
 ## [0.13.6] — 2026-10-15
 - Correct single-outlet electrical monitoring when an EP25 also exposes a configuration switch such as its LED.
 - Distinguish outlet switches from configuration/diagnostic switches using Home Assistant entity categories.

@@ -322,21 +322,32 @@ function shortOutlet(source) {
   const name = stripped || d.name;
   return name + ' (' + d.manufacturer + (d.model && !d.model.startsWith('Unknown') ? ' ' + d.model : '') + ')';
 }
+function readingsForSource(source) {
+  if (source.device.outlet_meter_candidates &&
+      source.device.outlet_meter_candidates[source.id])
+    return {readings:source.device.outlet_meter_candidates[source.id], candidate:true};
+  return {readings:source.device.electrical || [], candidate:false};
+}
+function readingAge(reading) {
+  const time = Date.parse(reading.last_updated || '');
+  return Number.isFinite(time) ? Math.max(0, Math.round((Date.now() - time) / 60000)) + 'm ago' : 'time unknown';
+}
 function sourceSnapshot(source) {
   const owner = source.device;
   const matches = owner.capabilities.flatMap(c => c.members || []).filter(m => m.entity_id === source.id);
   const current = matches.length ? matches[0].state : 'Not available';
   const sw = current === 'on' ? 'On (reported)' : current === 'off' ? 'Off (reported)' : 'Unknown';
   const observations = ['Switch: ' + sw];
-  for (const reading of owner.electrical || []) {
-    const time = Date.parse(reading.last_updated || '');
-    const age = Number.isFinite(time) ? Math.max(0, Math.round((Date.now() - time) / 60000)) + ' min ago' : 'update time unknown';
-    observations.push(reading.kind + ': ' + reading.value + ' ' + reading.unit + ' (reported ' + age + ')');
-  }
-  if ((owner.electrical || []).length)
-    observations.push('Electrical readings are observations, not proof of appliance operation. They may lag the switch state.');
+  const group = readingsForSource(source);
+  for (const reading of group.readings)
+    observations.push(reading.kind + ': ' + reading.value + ' ' + reading.unit + ' (' + readingAge(reading) + ')' +
+      (group.candidate ? ' · ID-match candidate, not confirmed' : ''));
+  if (group.readings.length)
+    observations.push(group.candidate ?
+      'These sensors share the exact outlet entity-ID stem. Attribution is a candidate only; verify in Home Assistant before relying on it.' :
+      'Electrical readings are observations, not proof of appliance operation. They may lag the switch state.');
   else
-    observations.push((owner.electrical_note || 'Electrical measurements were not attributed.') + ' No supported current measurement is available for this source.');
+    observations.push((owner.electrical_note || 'Electrical measurements were not attributed.') + ' No attributable meter readings were found for this outlet.');
   return observations;
 }
 /* Compact touch-first relationship editor. No nested scrolling or drag requirement. */
@@ -391,6 +402,22 @@ function renderMapper() {
     const sourceText = displaySource ? shortOutlet(displaySource) : 'Unresolved outlet';
     const targetText = targetDevice ? targetDevice.name + ' (' + targetDevice.manufacturer + ')' : 'Previously saved appliance';
     left.append(elem('strong', sourceText + ' → ' + targetText));
+    if (displaySource) {
+      const summary = elem('div', undefined, 'mapped-summary');
+      const row = displaySource.device.capabilities.flatMap(c => c.members || []).find(m => m.entity_id === displaySource.id);
+      const reported = row ? row.state : null;
+      const statePill = elem('span', reported === 'on' ? 'On' : reported === 'off' ? 'Off' : 'Unknown', 'mapped-pill');
+      summary.append(statePill);
+      const group = readingsForSource(displaySource);
+      if (group.readings.length) {
+        for (const reading of group.readings) {
+          const pill = elem('span', reading.value + ' ' + reading.unit +
+            (group.candidate ? ' · candidate' : '') + ' · ' + readingAge(reading), 'mapped-pill');
+          summary.append(pill);
+        }
+      }
+      left.append(summary);
+    }
     const detail = document.createElement('details');
     detail.className = 'mapped-technical';
     detail.append(elem('summary', 'Electrical observations & IDs'));

@@ -50,6 +50,33 @@ class ScanTests(unittest.TestCase):
                    'attributes':{'device_class':'power','unit_of_measurement':'W'}}]
         self.assertEqual(len(scan(devices,entities,states)['devices'][0]['electrical']),1)
 
+    def test_hs300_unique_exact_stem_candidate(self):
+        devices=[{'id':'strip','name':'Strip','manufacturer':'TP-Link','model':'HS300'}]
+        entities=[
+          {'device_id':'strip','entity_id':'switch.strip_roku_power'},
+          {'device_id':'strip','entity_id':'switch.strip_sony_power'},
+          {'device_id':'strip','entity_id':'sensor.strip_roku_power_current_consumption'},
+          {'device_id':'strip','entity_id':'sensor.strip_roku_power_voltage'}]
+        states=[
+          {'entity_id':'sensor.strip_roku_power_current_consumption','state':'7.2',
+           'attributes':{'device_class':'power','unit_of_measurement':'W'}},
+          {'entity_id':'sensor.strip_roku_power_voltage','state':'118.0',
+           'attributes':{'device_class':'voltage','unit_of_measurement':'V'}}]
+        device=scan(devices,entities,states)['devices'][0]
+        self.assertEqual(device['electrical'],[])
+        matched=device['outlet_meter_candidates']
+        self.assertEqual(len(matched['switch.strip_roku_power']),2)
+        self.assertNotIn('switch.strip_sony_power',matched)
+
+    def test_hs300_shared_reading_not_guessed(self):
+        devices=[{'id':'strip','name':'Strip','manufacturer':'TP-Link','model':'HS300'}]
+        entities=[{'device_id':'strip','entity_id':'switch.strip_roku_power'},
+                  {'device_id':'strip','entity_id':'switch.strip_sony_power'},
+                  {'device_id':'strip','entity_id':'sensor.strip_total_power'}]
+        states=[{'entity_id':'sensor.strip_total_power','state':'123',
+                 'attributes':{'device_class':'power','unit_of_measurement':'W'}}]
+        self.assertEqual(scan(devices,entities,states)['devices'][0]['outlet_meter_candidates'],{})
+
     def test_multi_outlet_strip_does_not_attribute_shared_power(self):
         devices = [{'id':'strip','name':'Power strip','manufacturer':'TP-Link','model':'HS300'}]
         entities = [{'device_id':'strip','entity_id':'switch.outlet_one'},
