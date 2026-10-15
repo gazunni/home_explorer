@@ -370,6 +370,35 @@ class ScanTests(unittest.TestCase):
         self.assertFalse(intel['coverage_is_partial'])
         self.assertNotIn('secret_rule',str(result))
 
+    def test_automation_explanation_safe_categories(self):
+        devices=[{'id':'fan','name':'Fan','manufacturer':'Example'},
+                 {'id':'plug','name':'Outlet','manufacturer':'Example'}]
+        entities=[{'device_id':'fan','entity_id':'sensor.fan_temperature'},
+                  {'device_id':'plug','entity_id':'switch.plug'}]
+        configs=[{
+          'alias':'Sensitive private schedule',
+          'triggers':[{'platform':'numeric_state','entity_id':'sensor.fan_temperature','above':27}],
+          'conditions':[{'condition':'state','entity_id':'sensor.fan_temperature','state':'secret'}],
+          'actions':[{'action':'switch.turn_on','target':{'entity_id':'switch.plug'},'data':{'password':'supersecret'}}]
+        }]
+        result=scan(devices,entities,configurations=configs,attempted=1)
+        fan=next(d for d in result['devices'] if d['name']=='Fan')
+        plug=next(d for d in result['devices'] if d['name']=='Outlet')
+        self.assertIn('Numeric threshold',fan['automation_explanations']['trigger'])
+        self.assertIn('State change',fan['automation_explanations']['condition'])
+        self.assertIn('Action target (operation not verified)',plug['automation_explanations']['action'])
+        self.assertNotIn('supersecret',str(result))
+        self.assertNotIn('Sensitive private schedule',str(result))
+        self.assertNotIn('switch.turn_on',str(result))
+
+    def test_automation_explanation_ignores_unreferenced_templates(self):
+        result=scan([{'id':'d','name':'Fan'}],
+                    [{'device_id':'d','entity_id':'sensor.fan_temperature'}],
+                    configurations=[{'triggers':[{'platform':'template',
+                                                  'value_template':"{{ states('sensor.fan_temperature') }}"}]}],
+                    attempted=1)
+        self.assertEqual(result['devices'][0]['automation_explanations'],{})
+
     def test_automations_redacted_to_counts(self):
         x=scan([],[],[{'entity_id':'automation.private_family_name','state':'on'},
                         {'entity_id':'automation.another','state':'off'}])
