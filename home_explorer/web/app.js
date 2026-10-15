@@ -270,18 +270,8 @@ async function refreshDevices() {
     get('energy').textContent = String(data.virtual_monitor_entries);
     get('disabled-reg').textContent = String(data.disabled_registrations ?? 0);
     get('empty-reg').textContent = String(data.empty_visible_registrations ?? 0);
-    const review = Array.isArray(data.registry_review) ? data.registry_review : [];
-    get('review-count').textContent = review.length + ' to review';
-    const reviewList = get('review-items');
-    reviewList.replaceChildren();
-    if (!review.length) reviewList.append(elem('p', 'No eligible registry review entries.', 'hint'));
-    for (const item of review) {
-      const line = elem('div', undefined, 'review-item');
-      line.append(elem('strong', item.name));
-      const status = item.disabled_by ? 'Disabled by ' + item.disabled_by : 'Not disabled';
-      line.append(elem('span', status + ' · ' + item.visible_entities + ' eligible visible entities · ' + item.manufacturer, 'row-meta'));
-      reviewList.append(line);
-    }
+    registryReview = Array.isArray(data.registry_review) ? data.registry_review : [];
+    renderRegistryReview();
     get('stats').hidden = false;
     get('toolbar').hidden = false;
 
@@ -289,6 +279,37 @@ async function refreshDevices() {
   } catch (error) {get('scan-notice').textContent = 'Scan unavailable: ' + error.message; get('scan-state').textContent = 'Scan failed'; get('scan-notice').hidden = false;}
   finally {get('scan').disabled = false; scanInProgress = false;}
 }
+let registryReview = [];
+function renderRegistryReview() {
+  const filter = get('review-filter').value;
+  const visible = registryReview.filter(item => {
+    if (filter === 'all') return true;
+    if (filter === 'disabled') return item.disabled_by != null;
+    if (filter === 'virtual') return item.category === 'Possible Tuya virtual scene';
+    if (filter === 'infrastructure') return item.category === 'Possible infrastructure';
+    if (filter === 'no-entities') return item.registered_entity_count === 0;
+    if (filter === 'excluded') return item.category === 'Entities excluded from display';
+    return true;
+  });
+  get('review-count').textContent = registryReview.length + ' to review';
+  const list = get('review-items');
+  list.replaceChildren();
+  if (!visible.length) list.append(elem('p', 'No entries match this filter.', 'hint'));
+  for (const item of visible) {
+    const line = elem('div', undefined, 'review-item');
+    line.append(elem('strong', item.name));
+    line.append(elem('span', item.category || 'Review', 'review-category'));
+    line.append(elem('span', item.explanation || 'Inspect in Home Assistant.', 'row-meta'));
+    const details = [String(item.registered_entity_count ?? 0) + ' registered entities',
+      String(item.visible_entities ?? 0) + ' eligible visible',
+      String(item.disabled_entity_count ?? 0) + ' entity-disabled',
+      String(item.unsupported_domain_count ?? 0) + ' unsupported domains'];
+    if (item.privacy_excluded_count) details.push('Privacy exclusions present');
+    line.append(elem('span', details.join(' · '), 'row-meta'));
+    list.append(line);
+  }
+}
+get('review-filter').addEventListener('change', renderRegistryReview);
 get('scan').addEventListener('click', refreshDevices);
 refreshDevices();
 
