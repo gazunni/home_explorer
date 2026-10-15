@@ -4,6 +4,8 @@ import hashlib
 import logging
 import os
 import re
+import threading
+import time
 from collections import Counter, defaultdict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -29,6 +31,27 @@ ALLOWED_DOMAINS = {
     'number', 'select', 'button', 'remote',
 }
 
+# This whitelist constrains the requests emitted by this application. It does
+# not reduce the Supervisor token's underlying Home Assistant permissions.
+READ_QUERY_TYPES = frozenset({
+    'config/device_registry/list', 'config/entity_registry/list',
+    'get_states', 'get_services', 'automation/config',
+})
+def read_query(query_type, **parameters):
+    if query_type not in READ_QUERY_TYPES:
+        raise ValueError('Home Assistant operation is not an approved read query')
+    if query_type == 'automation/config':
+        entity_id = parameters.get('entity_id')
+        if (set(parameters) != {'entity_id'} or not isinstance(entity_id, str)
+                or not re.fullmatch(r'automation\.[a-z0-9_]{1,128}', entity_id)):
+            raise ValueError('Invalid automation reference')
+    elif parameters:
+        raise ValueError('Unexpected Home Assistant query parameters')
+    return {'type': query_type, **parameters}
+
+# Serialize scans to limit expensive concurrent Supervisor WebSocket sessions.
+SCAN_LOCK = threading.Lock()
+
 def registry_request():
     token = os.environ.get('SUPERVISOR_TOKEN', '')
     if not token:
@@ -44,14 +67,14 @@ def registry_request():
         result = []
         for request_id, kind in enumerate(
                 ('config/device_registry/list', 'config/entity_registry/list', 'get_states'), 1):
-            ws.send(json.dumps({'id': request_id, 'type': kind}))
+            ws.send(json.dumps({'id': request_id, **read_query(kind)}))
             message = json.loads(ws.recv(timeout=15))
             if message.get('id') != request_id or not message.get('success'):
                 raise RuntimeError('Registry query unavailable')
             if not isinstance(message.get('result'), list):
                 raise RuntimeError('Unexpected registry result')
             result.append(message['result'])
-        ws.send(json.dumps({'id': 4, 'type': 'get_services'}))
+        ws.send(json.dumps({'id': 4, **read_query('get_services')}))
         response = json.loads(ws.recv(timeout=15))
         services = response.get('result', {}) if response.get('id') == 4 and response.get('success') else {}
         configurations = []
@@ -61,8 +84,7 @@ def registry_request():
         candidates = list(dict.fromkeys(candidates))[:100]
         for offset, entity_id in enumerate(candidates, 5):
             try:
-                ws.send(json.dumps({'id': offset, 'type': 'automation/config',
-                                    'entity_id': entity_id}))
+                ws.send(json.dumps({'id': offset, **read_query('automation/config', entity_id=entity_id)}))
                 reply = json.loads(ws.recv(timeout=3))
                 payload = reply.get('result')
                 if (reply.get('id') == offset and reply.get('success')
@@ -692,7 +714,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         'scope_note': 'Exact structured references only. Templates, indirect scripts, dynamically addressed entities, and manufacturer-app automations are not resolved. A zero count does not establish that a device is unused.'
     }
     return {
-        'version': '0.15.2', 'mode': 'read-only',
+        'version': '0.15.3', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
@@ -721,15 +743,28 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(content)
 
+    def allowed_gateway(self):
+        return self.client_address[0] == GATEWAY
+
+    def request_route(self):
+        # Home Assistant ingress prefixes the route; check suffixes at
+        # slash boundaries, not arbitrary string endings.
+        return self.path.split('?', 1)[0].rstrip('/')
+
     def do_GET(self):
-        if self.client_address[0] != GATEWAY:
+        if not self.allowed_gateway():
             return self.reply(403, b'Forbidden', 'text/plain')
-        route = self.path.split('?', 1)[0].rstrip('/')
-        if route.endswith('/api/relationships'):
+        route = self.request_route()
+        if route.endswith('/api/relationships') and route.count('/api/') == 1:
             return self.reply(200, json.dumps(load_power_dependencies()).encode(), 'application/json')
-        if route.endswith('/api/devices'):
+        if route.endswith('/api/devices') and route.count('/api/') == 1:
             try:
-                data = json.dumps(scan(*registry_request())).encode()
+                if not SCAN_LOCK.acquire(blocking=False):
+                    return self.reply(429, b'{"error":"A discovery scan is already running."}', 'application/json')
+                try:
+                    data = json.dumps(scan(*registry_request())).encode()
+                finally:
+                    SCAN_LOCK.release()
                 return self.reply(200, data, 'application/json')
             except Exception as exc:
                 # Exception messages can include device identifiers: log class only.
@@ -737,21 +772,23 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(503, b'{"error":"Registry scan unavailable; see app logs."}', 'application/json')
         for suffix, filename, mime in (('/app.js', 'app.js', 'text/javascript'),
                                         ('/style.css', 'style.css', 'text/css')):
-            if route.endswith(suffix):
+            if route.endswith(suffix) and route.count(suffix) == 1:
                 return self.reply(200, (BASE / filename).read_bytes(), mime)
         if route.endswith('/api') or '/api/' in route:
             return self.reply(404, b'Not found', 'text/plain')
         return self.reply(200, (BASE / 'index.html').read_bytes(), 'text/html; charset=utf-8')
 
     def do_POST(self):
-        if self.client_address[0] != GATEWAY:
+        if not self.allowed_gateway():
             return self.reply(403, b'Forbidden', 'text/plain')
-        route = self.path.split('?', 1)[0].rstrip('/')
-        if not route.endswith('/api/relationships'):
+        route = self.request_route()
+        if not route.endswith('/api/relationships') or route.count('/api/') != 1:
             return self.reply(405, b'Not allowed', 'text/plain')
         if (self.headers.get('Content-Type', '').split(';')[0].strip() != 'application/json'
                 or self.headers.get('X-Home-Explorer') != 'relationship-update'):
             return self.reply(415, b'Unsupported request', 'text/plain')
+        if self.headers.get('Transfer-Encoding'):
+            return self.reply(400, b'Transfer encoding not supported', 'text/plain')
         try:
             size = int(self.headers.get('Content-Length', '0'))
             if not 2 <= size <= 16000:

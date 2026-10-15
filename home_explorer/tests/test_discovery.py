@@ -1,7 +1,7 @@
 import unittest
 import json
 from unittest.mock import patch, Mock
-from server import scan, referenced_devices, automation_links, registry_request, device_diagnostics, power_dependency, load_power_dependencies, save_power_dependencies, Handler, PRIVATE_NAME
+from server import scan, referenced_devices, automation_links, registry_request, device_diagnostics, power_dependency, load_power_dependencies, save_power_dependencies, Handler, PRIVATE_NAME, read_query, SCAN_LOCK
 
 class ScanTests(unittest.TestCase):
     def test_electrical_snapshot_single_switch_is_read_only(self):
@@ -456,6 +456,55 @@ class ScanTests(unittest.TestCase):
                       [{'device_id':'d1','entity_id':'light.secret_identifier'}],
                       [{'entity_id':'light.secret_identifier','state':'on'}])
         self.assertEqual(result['displayed_devices'], 0)
+    def test_only_approved_home_assistant_reads(self):
+        self.assertEqual(read_query('get_states'), {'type':'get_states'})
+        self.assertEqual(read_query('automation/config', entity_id='automation.winter_sump'),
+                         {'type':'automation/config','entity_id':'automation.winter_sump'})
+        for request in ('call_service', 'config/entity_registry/update', 'script/turn_on',
+                        'automation/trigger', 'config/device_registry/remove'):
+            with self.assertRaises(ValueError):
+                read_query(request)
+        for invalid in ('switch.sump', '../automation.winter', 'automation.private-token',
+                        'automation.winter sump'):
+            with self.assertRaises(ValueError):
+                read_query('automation/config', entity_id=invalid)
+        with self.assertRaises(ValueError):
+            read_query('get_states', entity_id='switch.sump')
+
+    def test_concurrent_device_scan_is_rejected(self):
+        from server import GATEWAY
+        handler=Handler.__new__(Handler)
+        handler.client_address=(GATEWAY, 12345)
+        handler.path='/api/devices'
+        handler.reply=Mock()
+        self.assertTrue(SCAN_LOCK.acquire(blocking=False))
+        try:
+            handler.do_GET()
+        finally:
+            SCAN_LOCK.release()
+        self.assertEqual(handler.reply.call_args.args[0], 429)
+
+    def test_ingress_rejects_transfer_encoding_and_unapproved_api(self):
+        from io import BytesIO
+        from server import GATEWAY
+        handler=Handler.__new__(Handler)
+        handler.client_address=(GATEWAY, 12345)
+        handler.path='/api/relationships'
+        handler.reply=Mock()
+        handler.headers={'Content-Type':'application/json','X-Home-Explorer':'relationship-update',
+                         'Content-Length':'2','Transfer-Encoding':'chunked'}
+        handler.rfile=BytesIO(b'{}')
+        handler.do_POST()
+        self.assertEqual(handler.reply.call_args.args[0], 400)
+        handler.reply.reset_mock()
+        handler.path='/api/call_service'
+        handler.do_POST()
+        self.assertEqual(handler.reply.call_args.args[0], 405)
+        handler.reply.reset_mock()
+        handler.path='/api/call_service'
+        handler.do_GET()
+        self.assertEqual(handler.reply.call_args.args[0], 404)
+
     def test_private_filter_avoids_common_substrings(self):
         self.assertFalse(PRIVATE_NAME.search('Wall Clock'))
         self.assertFalse(PRIVATE_NAME.search('Outdoor humidity'))
