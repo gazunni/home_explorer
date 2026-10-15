@@ -252,8 +252,7 @@ async function refreshDevices() {
     get('energy').textContent = String(data.virtual_monitor_entries);
     get('stats').hidden = false;
     get('toolbar').hidden = false;
-    get('status').textContent = 'Discovery complete. ' + data.hidden_private_devices +
-      ' sensitive-name entries filtered. No devices or automations were changed.';
+
     render();
   } catch (error) {get('status').textContent = 'Scan unavailable: ' + error.message; get('scan-state').textContent = 'Scan failed'; get('scan-notice').hidden = false;}
   finally {get('scan').disabled = false; scanInProgress = false;}
