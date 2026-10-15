@@ -296,6 +296,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         flags = attrs.get('supported_features')
         opts = attrs.get('options')
         metadata[eid] = {
+            'friendly_name': attrs.get('friendly_name')[:90] if isinstance(attrs.get('friendly_name'), str) and not PRIVATE_NAME.search(attrs.get('friendly_name')) else None,
             'supported_features': flags if type(flags) is int and 0 <= flags <= 2147483647 else None,
             'options': [v for v in opts[:20]
                         if isinstance(v, str) and len(v) <= 60 and not PRIVATE_NAME.search(v)]
@@ -318,7 +319,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
             continue
         registry_entities[dev].append(entity)
         domain = entity_id.split('.', 1)[0]
-        label = entity.get('name') or entity.get('original_name') or entity_id.split('.', 1)[-1].replace('_', ' ')
+        label = entity.get('name') or metadata.get(entity_id, {}).get('friendly_name') or entity.get('original_name') or entity_id.split('.', 1)[-1].replace('_', ' ')
         if not isinstance(label, str) or PRIVATE_NAME.search(entity_id + ' ' + label):
             continue
         if domain in ALLOWED_DOMAINS and entity.get('disabled_by') is None:
@@ -428,7 +429,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.13.2', 'mode': 'read-only',
+        'version': '0.13.3', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
