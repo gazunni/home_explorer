@@ -153,13 +153,6 @@ function render() {
       panel.append(elem('small', 'Relationship confirmed by homeowner. This does not verify an automation schedule or device health.'));
       body.append(panel);
     }
-    if (d.diagnostics) {
-      const diag = d.diagnostics;
-      const summary = elem('p', 'Reading health: ' + diag.status + ' · ' +
-        diag.available + ' reporting · ' + diag.unavailable + ' unavailable · ' +
-        diag.unknown + ' unknown. This does not establish physical power or connectivity.', 'diagnostics');
-      body.append(summary);
-    }
     if (d.automation_links) {
       const refs = d.automation_links;
       const sum = refs.trigger + refs.condition + refs.action;
@@ -275,6 +268,20 @@ async function refreshDevices() {
     get('registered').textContent = String(data.registered_devices);
     get('shown').textContent = String(data.displayed_devices);
     get('energy').textContent = String(data.virtual_monitor_entries);
+    get('disabled-reg').textContent = String(data.disabled_registrations ?? 0);
+    get('empty-reg').textContent = String(data.empty_visible_registrations ?? 0);
+    const review = Array.isArray(data.registry_review) ? data.registry_review : [];
+    get('review-count').textContent = review.length + ' to review';
+    const reviewList = get('review-items');
+    reviewList.replaceChildren();
+    if (!review.length) reviewList.append(elem('p', 'No eligible registry review entries.', 'hint'));
+    for (const item of review) {
+      const line = elem('div', undefined, 'review-item');
+      line.append(elem('strong', item.name));
+      const status = item.disabled_by ? 'Disabled by ' + item.disabled_by : 'Not disabled';
+      line.append(elem('span', status + ' · ' + item.visible_entities + ' eligible visible entities · ' + item.manufacturer, 'row-meta'));
+      reviewList.append(line);
+    }
     get('stats').hidden = false;
     get('toolbar').hidden = false;
 
