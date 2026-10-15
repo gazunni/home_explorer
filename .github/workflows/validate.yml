@@ -10,18 +10,40 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.12'
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - run: python -m pip install websockets
       - run: python -m py_compile home_explorer/server.py home_explorer/tests/test_discovery.py
       - run: node --check home_explorer/web/app.js
+      - name: Check version consistency
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          config = Path('home_explorer/config.yaml').read_text()
+          version = re.search(r'^version:\\s*(\\S+)', config, re.M).group(1)
+          parts = [
+              ('home_explorer/Dockerfile', 'io.hass.version="' + version + '"'),
+              ('home_explorer/web/index.html', 'v' + version),
+              ('home_explorer/server.py', "'version': '" + version + "'"),
+              ('README.md', 'Current version: **' + version + '**'),
+              ('home_explorer/CHANGELOG.md', '## [' + version + ']'),
+          ]
+          for filename, needle in parts:
+              assert needle in Path(filename).read_text(), filename + ' version mismatch'
+          print('Version consistent: ' + version)
+          PY
+
       - run: docker build -t home-explorer-ci home_explorer
       - run: |
-          docker run -d --name home-explorer-smoke home-explorer-ci
+          docker run -d --name home-explorer-smoke -p 18099:8099 home-explorer-ci
           sleep 4
           docker ps --filter name=home-explorer-smoke --filter status=running --format '{{.Names}}' | grep -qx home-explorer-smoke
+          test "$(docker exec home-explorer-smoke ps -o user= -p 1 | tr -d ' ')" != "root"
+          docker exec home-explorer-smoke su explorer -c 'touch /data/explorer-smoke && rm /data/explorer-smoke'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18099/api/devices)" = "403"
           docker logs home-explorer-smoke
           docker rm -f home-explorer-smoke
       - run: PYTHONPATH=home_explorer python -m unittest discover -s home_explorer/tests -v
