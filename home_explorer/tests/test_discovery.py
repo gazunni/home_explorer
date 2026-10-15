@@ -4,6 +4,34 @@ from unittest.mock import patch
 from server import scan, referenced_devices, automation_links, registry_request, device_diagnostics, power_dependency, load_power_dependencies, save_power_dependencies
 
 class ScanTests(unittest.TestCase):
+    def test_registry_review_distinguishes_disabled_and_virtual(self):
+        devices = [
+            {'id':'a','name':'Fan Wind Speed Level:2','manufacturer':'tuya','model':'Scene'},
+            {'id':'b','name':'Old Sense Air Pump','manufacturer':'Sense Labs, Inc.',
+             'model':'Sense','disabled_by':'user'},
+            {'id':'c','name':'Zigbee Coordinator','manufacturer':'Example','model':'Coordinator'},
+        ]
+        result = scan(devices, [{'device_id':'a','entity_id':'scene.fan_speed'},
+                                {'device_id':'b','entity_id':'sensor.old','disabled_by':'user'}])
+        review = {x['name']:x for x in result['registry_review']}
+        self.assertEqual(review['Fan Wind Speed Level:2']['category'], 'Possible Tuya virtual scene')
+        self.assertEqual(review['Fan Wind Speed Level:2']['registered_entity_count'], 1)
+        self.assertEqual(review['Fan Wind Speed Level:2']['unsupported_domain_count'], 1)
+        self.assertEqual(review['Old Sense Air Pump']['category'], 'Disabled registration')
+        self.assertEqual(review['Old Sense Air Pump']['disabled_entity_count'], 1)
+        self.assertEqual(review['Zigbee Coordinator']['category'], 'Possible infrastructure')
+        self.assertEqual(result['disabled_registrations'], 1)
+        self.assertEqual(result['empty_visible_registrations'], 3)
+        self.assertEqual(result['displayed_devices'], 0)
+        self.assertNotIn('scene.fan_speed', str(result))
+        self.assertNotIn("'id': 'a'", str(result))
+
+    def test_unclassified_empty_is_not_called_deleted(self):
+        result = scan([{'id':'x','name':'Unused Accessory','manufacturer':'Unknown'}], [])
+        item = result['registry_review'][0]
+        self.assertEqual(item['category'], 'No registered entities')
+        self.assertNotIn('deleted', str(item).lower())
+
     def test_confirmed_outlet_off_is_not_appliance_failure(self):
         x = power_dependency('Sample Appliance',
                              {'switch.sample_outlet':'off'},

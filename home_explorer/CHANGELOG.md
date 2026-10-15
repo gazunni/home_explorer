@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.13.2] — 2026-10-15
+- Add read-only Registry Intelligence classifications for disabled registrations, possible Tuya scenes, infrastructure, missing entities, and excluded entities.
+- Explain entity-registry counts and disabled or unsupported entities without disclosing private entity names.
+- Filter review entries by classification; all scene classifications remain provisional and no deletion is inferred.
+
 ## [0.13.1] — 2026-10-14
 - Add read-only Registry review of disabled registrations and records with no eligible visible entities; exclude disabled registrations from normal browsing.
 - Display disabled and empty registration counts separately; preserve privacy-name filtering and never expose internal registry IDs.
