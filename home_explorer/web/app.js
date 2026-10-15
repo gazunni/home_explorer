@@ -325,7 +325,8 @@ function shortOutlet(source) {
 function readingsForSource(source) {
   if (source.device.outlet_meter_candidates &&
       source.device.outlet_meter_candidates[source.id])
-    return {readings:source.device.outlet_meter_candidates[source.id], candidate:true};
+    return {readings:source.device.outlet_meter_candidates[source.id], candidate:true,
+      socketMatch:(source.device.socket_meter_candidate_ids || []).includes(source.id)};
   return {readings:source.device.electrical || [], candidate:false};
 }
 function readingAge(reading) {
@@ -341,10 +342,12 @@ function sourceSnapshot(source) {
   const group = readingsForSource(source);
   for (const reading of group.readings)
     observations.push(reading.kind + ': ' + reading.value + ' ' + reading.unit + ' (' + readingAge(reading) + ')' +
-      (group.candidate ? ' · ID-match candidate, not confirmed' : ''));
+      (group.socketMatch ? ' · registry-linked socket candidate' : group.candidate ? ' · ID-match candidate, not confirmed' : ''));
   if (group.readings.length)
     observations.push(group.candidate ?
-      'These sensors share the exact outlet entity-ID stem. Attribution is a candidate only; verify in Home Assistant before relying on it.' :
+      (group.socketMatch ?
+        'These measurements belong to a TP-Link socket registered beneath the strip, uniquely matched to this switch by its complete socket name. Verify the pairing in Home Assistant.' :
+        'These sensors share the exact outlet entity-ID stem. Attribution is a candidate only; verify in Home Assistant before relying on it.') :
       'Electrical readings are observations, not proof of appliance operation. They may lag the switch state.');
   else
     observations.push((owner.electrical_note || 'Electrical measurements were not attributed.') + ' No attributable meter readings were found for this outlet.');
@@ -412,7 +415,7 @@ function renderMapper() {
       if (group.readings.length) {
         for (const reading of group.readings) {
           const pill = elem('span', reading.value + ' ' + reading.unit +
-            (group.candidate ? ' · candidate' : '') + ' · ' + readingAge(reading), 'mapped-pill');
+            (group.socketMatch ? ' · socket match' : group.candidate ? ' · candidate' : '') + ' · ' + readingAge(reading), 'mapped-pill');
           summary.append(pill);
         }
       }
