@@ -99,3 +99,13 @@
 
 /* v0.12.4: conditional discovery warnings only */
 .scan-notice{margin:10px 0 0;padding:9px 12px;border:1px solid #987548;border-radius:8px;color:#f0d8a6;background:#302b24;font-size:13px}
+
+/* v0.13.0 conservative device reading intelligence */
+.row-counts .health-pill{font-size:11px;border:1px solid #4b6279;background:#26394c;color:#d2e4f2}
+.row-counts .health-good{border-color:#376e61;background:#1c4039;color:#a6e9d3}
+.row-counts .health-attention{border-color:#916d44;background:#413124;color:#f4d49c}
+.row-counts .health-power{border-color:#59748c;background:#253b50;color:#bed8ee}
+.health-panel{margin:10px 0;padding:11px 13px;border:1px solid #3c566d;border-radius:10px;background:#122638}
+.health-panel strong{font-size:13px;color:#c4e9e1}
+.health-panel p{margin:6px 0;font-size:13px;color:#c0d1df;line-height:1.45}
+.health-panel small{font-size:12px;color:#a9bacc}

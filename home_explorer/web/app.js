@@ -63,6 +63,21 @@ function capabilityNote(domain) {
   return descriptions[domain] || 'Available commands for this entity have not been verified.';
 }
 
+/* Health classifications describe HA readings, not physical device faults. */
+function deviceHealth(d) {
+  const diag = d.diagnostics;
+  if (!diag || !Number.isFinite(diag.available) || !Number.isFinite(diag.unavailable) || !Number.isFinite(diag.unknown))
+    return {label:'Not assessed',kind:'neutral',detail:'No reliable entity-reading summary is available.'};
+  const total = diag.available + diag.unavailable + diag.unknown;
+  if (!total) return {label:'No readings',kind:'neutral',detail:'No current entity readings are available for assessment.'};
+  const power = d.power_dependency && d.power_dependency.supply_state;
+  if (power === 'off') return {label:'Upstream off',kind:'power',detail:'The confirmed power source reports off. Unavailable readings may be expected; this does not establish a device fault.'};
+  if (diag.unavailable > 0 && power === 'on') return {label:'Check readings',kind:'attention',detail:'The confirmed power source reports on, but ' + diag.unavailable + ' entity readings are unavailable. Investigate integration or connectivity before assuming a device fault.'};
+  if (diag.unavailable > 0) return {label:'Check readings',kind:'attention',detail:diag.unavailable + ' entity readings are unavailable. The cause is unknown; this is not proof of a connectivity or hardware fault.'};
+  if (diag.unknown > 0) return {label:'Unknown readings',kind:'neutral',detail:diag.unknown + ' readings are unknown. Home Assistant has not reported their current values.'};
+  return {label:'Reporting',kind:'good',detail:'All ' + diag.available + ' assessed entity readings are reporting. This does not confirm physical operation or device health.'};
+}
+
 function render() {
   const term = get('search').value.trim().toLocaleLowerCase();
   const kind = get('kind').value;
@@ -86,6 +101,7 @@ function render() {
     heading.append(sub);
     summary.append(heading);
     const counts = elem('span', undefined, 'row-counts');
+    if (!d.virtual) { const health = deviceHealth(d); counts.append(elem('span', health.label, 'health-pill health-' + health.kind)); }
     if (d.observable_categories) counts.append(elem('span', d.observable_categories + ' info', 'access-info'));
     if (d.potential_control_categories) counts.append(elem('span', d.potential_control_categories + ' possible controls', 'access-possible'));
     if (d.power_dependency) {
@@ -98,6 +114,14 @@ function render() {
     row.append(summary);
     const body = elem('div', undefined, 'device-body');
     body.append(elem('p', d.kind, 'kind'));
+    if (!d.virtual) {
+      const health = deviceHealth(d);
+      const panel = elem('section', undefined, 'health-panel');
+      panel.append(elem('strong', 'Device readings · ' + health.label));
+      panel.append(elem('p', health.detail));
+      if (d.diagnostics) panel.append(elem('small', d.diagnostics.available + ' reporting · ' + d.diagnostics.unavailable + ' unavailable · ' + d.diagnostics.unknown + ' unknown'));
+      body.append(panel);
+    }
     if (Array.isArray(d.summary) && d.summary.length) {
       const glance = elem('div', undefined, 'at-a-glance');
       glance.append(elem('h4', 'At a glance'));
