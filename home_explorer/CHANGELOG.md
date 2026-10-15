@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.13.1] — 2026-10-14
+- Add read-only Registry review of disabled registrations and records with no eligible visible entities; exclude disabled registrations from normal browsing.
+- Display disabled and empty registration counts separately; preserve privacy-name filtering and never expose internal registry IDs.
+- Remove redundant device reading-health paragraph.
+
 ## [0.13.0] — 2026-10-14
 - Add device-level reading intelligence with conservative status indicators and explanatory panels.
 - Distinguish confirmed upstream power off from unavailable readings while avoiding unsupported hardware-fault conclusions.
