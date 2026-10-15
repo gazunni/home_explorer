@@ -2,6 +2,13 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.15.0] — 2026-10-15
+- Introduce a compact, collapsed-by-default Automation Intelligence panel with exact-reference coverage metrics and device role filters.
+- Explain verified trigger, condition and action references by device without exposing automation names or configuration rules.
+- Highlight multiple-role devices and devices with no *exact* found reference, without treating absence as proof of non-use.
+- Explicitly warn when configuration retrieval is incomplete, and exclude private entity references.
+- All Home Assistant data remains read-only and six saved electrical relationships remain unaffected.
+
 ## [0.14.0] — 2026-10-15
 - Complete Power Intelligence presentation: distinguish commanded on/off, electrical load observations, and appliance operation.
 - Compare sensor last_updated with switch last_changed to identify measurements recorded before the current switch state.
