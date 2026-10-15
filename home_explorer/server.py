@@ -344,6 +344,103 @@ def automation_explanations(configurations, device_entities):
             for owner, roles in grouped.items()}
 
 
+def automation_flow_summaries(configurations, device_entities):
+    """Bounded per-device flow outlines from individual configurations.
+
+    A flow shares one source automation, but phases are not asserted to execute
+    in order or cause one another. Never return names, IDs, thresholds, time
+    values, services, or original configuration fragments.
+    """
+    results = defaultdict(list)
+    categories = {
+        'state': 'State', 'numeric_state': 'Numeric threshold',
+        'time': 'Time', 'time_pattern': 'Time pattern', 'sun': 'Sun',
+        'zone': 'Zone', 'device': 'Device', 'event': 'Event',
+        'template': 'Template (not interpreted)',
+    }
+    for config in (configurations or [])[:100]:
+        if not isinstance(config, dict):
+            continue
+        roots = {
+            'trigger': config.get('triggers', config.get('trigger', [])),
+            'condition': config.get('conditions', config.get('condition', [])),
+            'action': config.get('actions', config.get('action', [])),
+        }
+        roles = defaultdict(set)
+        stages = {}
+        branch = False
+        unsupported = False
+        for role, root in roots.items():
+            kinds = set()
+            stack = [(root, 0)]
+            seen = 0
+            while stack and seen < 600:
+                node, depth = stack.pop()
+                seen += 1
+                if depth > 12:
+                    unsupported = True
+                    continue
+                if isinstance(node, list):
+                    stack.extend((child, depth + 1) for child in node[:100])
+                    if len(node) > 100:
+                        unsupported = True
+                    continue
+                if not isinstance(node, dict):
+                    continue
+                for key in ('entity_id', 'device_id'):
+                    values = node.get(key)
+                    values = values if isinstance(values, list) else [values]
+                    for value in values[:100]:
+                        if isinstance(value, str) and value in device_entities:
+                            roles[device_entities[value]].add(role)
+                if role == 'trigger':
+                    kind = node.get('platform', node.get('trigger'))
+                    if isinstance(kind, str):
+                        kinds.add(categories.get(kind, 'Other trigger'))
+                elif role == 'condition':
+                    kind = node.get('condition')
+                    if isinstance(kind, str):
+                        kinds.add(categories.get(kind, 'Composite/other condition'))
+                elif role == 'action' and any(k in node for k in ('action', 'service', 'device_id', 'target', 'entity_id')):
+                    kinds.add('Action step (not executed)')
+                if 'value_template' in node or 'data_template' in node or 'template' in node:
+                    unsupported = True
+                if any(k in node for k in ('choose', 'repeat', 'parallel', 'if', 'then', 'else')):
+                    branch = True
+                if 'variables' in node or 'wait_template' in node:
+                    unsupported = True
+                for field in ('trigger','condition','action','actions','conditions','triggers',
+                              'sequence','choose','default','then','else','repeat','parallel',
+                              'target','if'):
+                    child = node.get(field)
+                    if isinstance(child, (dict, list)):
+                        stack.append((child, depth + 1))
+            if stack:
+                unsupported = True
+            stages[role] = sorted(kinds)[:5]
+        if not any(roles.values()):
+            continue
+        phase = {
+            'trigger': bool(roots['trigger']),
+            'condition': bool(roots['condition']),
+            'action': bool(roots['action']),
+        }
+        for owner, referenced_roles in roles.items():
+            if len(results[owner]) >= 12:
+                continue
+            results[owner].append({
+                'roles': [role for role in ('trigger','condition','action') if role in referenced_roles],
+                'phases': phase,
+                'trigger_types': stages['trigger'],
+                'condition_types': stages['condition'],
+                'action_types': stages['action'],
+                'branching': branch,
+                'needs_review': unsupported,
+                'description': 'These phases are present in one automation configuration; their runtime sequence and outcomes are not verified.',
+            })
+    return dict(results)
+
+
 def registry_classification(name, manufacturer, model, disabled_by, entity_total, eligible):
     """Conservative, metadata-only review; never assert a cloud scene was deleted."""
     vendor = manufacturer.casefold().strip()
@@ -533,6 +630,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         by_device)
     associations = automation_links(configurations, entity_devices)
     explanations = automation_explanations(configurations, entity_devices)
+    flow_outlines = automation_flow_summaries(configurations, entity_devices)
     # Raw registry keys remain internal; only one-way opaque lookup keys reach the browser.
     lookup = {d['id']: d for d in devices if isinstance(d, dict) and isinstance(d.get('id'), str)}
     visible = {}
@@ -672,6 +770,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
             'power_dependency': power_dependency(name, safe_states, confirmed_dependencies, public_key, name_counts[name] == 1),
             'automation_links': dict(associations.get(device_id, {'trigger':0,'condition':0,'action':0})),
             'automation_explanations': explanations.get(device_id, {}),
+            'automation_flows': flow_outlines.get(device_id, []),
             'observable_categories': sum(1 for k in counts if k in OBSERVATION_DOMAINS),
             'potential_control_categories': sum(1 for k in counts if k in POTENTIAL_CONTROL_DOMAINS),
             'kind': 'Energy-monitor detection' if is_virtual else 'Registered device',
@@ -714,7 +813,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         'scope_note': 'Exact structured references only. Templates, indirect scripts, dynamically addressed entities, and manufacturer-app automations are not resolved. A zero count does not establish that a device is unused.'
     }
     return {
-        'version': '0.15.3', 'mode': 'read-only',
+        'version': '0.15.4', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
