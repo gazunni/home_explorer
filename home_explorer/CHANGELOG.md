@@ -2,6 +2,13 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.14.0] — 2026-10-15
+- Complete Power Intelligence presentation: distinguish commanded on/off, electrical load observations, and appliance operation.
+- Compare sensor last_updated with switch last_changed to identify measurements recorded before the current switch state.
+- Classify measurements as recent (up to 15 min), aging (15–60 min), and older (over 60 min), without declaring integration failure merely because a reading is old.
+- Label historical readings as Last and distinguish no observed load from unavailable or unverified load.
+- Preserve exact, privacy-conscious per-outlet correlations and all locally saved relationships; no Home Assistant commands.
+
 ## [0.13.8] — 2026-10-15
 - Match HS300 switches to registered child socket devices using Home Assistant via_device_id plus exact unique normalized socket name.
 - Expose measurements owned by the child socket to that specific parent switch as explicitly provisional socket-registry matches, with no guessed values or device commands.
