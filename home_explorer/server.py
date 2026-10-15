@@ -789,8 +789,6 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(415, b'Unsupported request', 'text/plain')
         if self.headers.get('Transfer-Encoding'):
             return self.reply(400, b'Transfer encoding not supported', 'text/plain')
-        if self.headers.get('Origin') and not self.headers.get('Origin', '').startswith('http'):
-            return self.reply(403, b'Invalid origin', 'text/plain')
         try:
             size = int(self.headers.get('Content-Length', '0'))
             if not 2 <= size <= 16000:
