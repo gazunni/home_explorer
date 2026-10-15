@@ -216,6 +216,7 @@ async function refreshDevices() {
   scanInProgress = true;
   get('scan').disabled = true;
   get('status').textContent = 'Reading device and entity registries locally…';
+  get('scan-state').textContent = 'Scanning…';
   try {
     const root = location.href.split('?')[0].replace(/\/?$/, '/');
     const response = await fetch(new URL('api/devices', root), {credentials:'same-origin',cache:'no-store'});
@@ -229,6 +230,13 @@ async function refreshDevices() {
       mappings = mapResponse.ok ? await mapResponse.json() : {};
     } catch (_) { mappings = {}; }
     renderMapper();
+    const automation = data.automations || {};
+    get('automation-total').textContent = automation.total ?? '—';
+    get('automation-enabled').textContent = automation.enabled ?? '—';
+    get('automation-disabled').textContent = automation.disabled ?? '—';
+    get('automation-checked').textContent = automation.lookup_attempted != null ? String(automation.configurations_checked ?? 0) + '/' + String(automation.lookup_attempted) : '—';
+    get('privacy-count').textContent = String(data.hidden_private_devices ?? 0);
+    get('scan-state').textContent = 'Scan complete';
     if (data.automations && get('automation-status')) {
       const a = data.automations;
       const incomplete = a.configurations_checked < a.lookup_attempted;
@@ -247,7 +255,7 @@ async function refreshDevices() {
     get('status').textContent = 'Discovery complete. ' + data.hidden_private_devices +
       ' sensitive-name entries filtered. No devices or automations were changed.';
     render();
-  } catch (error) {get('status').textContent = 'Scan unavailable: ' + error.message;}
+  } catch (error) {get('status').textContent = 'Scan unavailable: ' + error.message; get('scan-state').textContent = 'Scan failed'; get('overview').querySelector('.overview-details').open = true;}
   finally {get('scan').disabled = false; scanInProgress = false;}
 }
 get('scan').addEventListener('click', refreshDevices);
