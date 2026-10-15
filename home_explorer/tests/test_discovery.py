@@ -336,6 +336,40 @@ class ScanTests(unittest.TestCase):
                  {'light':{'turn_on':{},'turn_off':{}}})['devices'][0]
         self.assertEqual(x['capabilities'][0]['domain_services'],['turn_off','turn_on'])
         self.assertEqual(x['capabilities'][0]['members'][0]['supported_features'],5)
+    def test_automation_intelligence_roles_and_coverage(self):
+        devices=[{'id':'d1','name':'Fan','manufacturer':'Example'},
+                 {'id':'d2','name':'Outlet','manufacturer':'Example'},
+                 {'id':'d3','name':'Unused looking but not proven','manufacturer':'Example'}]
+        entities=[{'device_id':'d1','entity_id':'sensor.fan_temp'},
+                  {'device_id':'d2','entity_id':'switch.outlet'},
+                  {'device_id':'d3','entity_id':'sensor.unlinked'}]
+        configs=[{'triggers':[{'entity_id':'sensor.fan_temp'}],
+                  'conditions':[{'entity_id':'sensor.fan_temp'}],
+                  'actions':[{'target':{'entity_id':'switch.outlet'}}]}]
+        result=scan(devices,entities,configurations=configs,attempted=2)
+        intel=result['automation_intelligence']
+        self.assertEqual(intel['devices_with_exact_references'],2)
+        self.assertEqual(intel['devices_used_in_triggers'],1)
+        self.assertEqual(intel['devices_used_in_conditions'],1)
+        self.assertEqual(intel['devices_used_in_actions'],1)
+        self.assertEqual(intel['devices_with_multiple_roles'],1)
+        self.assertEqual(intel['devices_without_exact_references'],1)
+        self.assertTrue(intel['coverage_is_partial'])
+        device=next(x for x in result['devices'] if x['name']=='Fan')
+        self.assertEqual(device['automation_insight']['roles'],['trigger','condition'])
+        self.assertNotIn('Unused looking but not proven',intel['scope_note'])
+
+    def test_automation_intelligence_private_reference_not_exposed(self):
+        result=scan([{'id':'d1','name':'Fan'}],
+                    [{'device_id':'d1','entity_id':'sensor.fan_temp'},
+                     {'device_id':'d1','entity_id':'switch.secret_rule'}],
+                    configurations=[{'actions':[{'target':{'entity_id':'switch.secret_rule'}}]}],
+                    attempted=1)
+        intel=result['automation_intelligence']
+        self.assertEqual(intel['devices_with_exact_references'],0)
+        self.assertFalse(intel['coverage_is_partial'])
+        self.assertNotIn('secret_rule',str(result))
+
     def test_automations_redacted_to_counts(self):
         x=scan([],[],[{'entity_id':'automation.private_family_name','state':'on'},
                         {'entity_id':'automation.another','state':'off'}])
