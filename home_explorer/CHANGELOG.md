@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.13.3] — 2026-10-15
+- Improve switch selector labels using Home Assistant friendly names and show exact switch entity IDs.
+- Explain ambiguous duplicate appliance registrations instead of silently omitting them from the picker.
+- Preserve local-only relationship saves and read-only Home Assistant access.
+
 ## [0.13.2] — 2026-10-15
 - Add read-only Registry Intelligence classifications for disabled registrations, possible Tuya scenes, infrastructure, missing entities, and excluded entities.
 - Explain entity-registry counts and disabled or unsupported entities without disclosing private entity names.
