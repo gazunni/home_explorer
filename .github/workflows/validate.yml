@@ -20,10 +20,9 @@ jobs:
       - name: Check version consistency
         run: |
           python - <<'PY'
-          import re
           from pathlib import Path
           config = Path('home_explorer/config.yaml').read_text()
-          version = re.search(r'^version:\\s*(\\S+)', config, re.M).group(1)
+          version = next(line.split(':', 1)[1].strip() for line in config.splitlines() if line.startswith('version:'))
           parts = [
               ('home_explorer/Dockerfile', 'io.hass.version="' + version + '"'),
               ('home_explorer/web/index.html', 'v' + version),
