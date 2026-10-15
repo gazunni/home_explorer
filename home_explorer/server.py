@@ -315,6 +315,69 @@ def outlet_meter_candidates(switches, entities):
     return {key: values[:3] for key, values in matched.items()}
 
 
+def meter_readings(entries):
+    """Return bounded fresh/state numeric meter observations from one registry device."""
+    observations = []
+    seen = set()
+    for entry in entries:
+        if entry.get('domain') != 'sensor':
+            continue
+        props = entry.get('metadata') or {}
+        kind, unit = props.get('device_class'), props.get('unit')
+        if (kind, unit) not in (('power', 'W'), ('power', 'kW'),
+                               ('current', 'A'), ('current', 'mA'),
+                               ('voltage', 'V')):
+            continue
+        try:
+            measurement = float(entry['state'])
+            if not -1000000 < measurement < 1000000 or kind in seen:
+                continue
+        except (ValueError, TypeError, KeyError):
+            continue
+        seen.add(kind)
+        observations.append({'kind': kind, 'value': measurement,
+                             'unit': unit, 'last_updated': props.get('last_updated')})
+        if len(observations) == 3:
+            break
+    return observations
+
+
+def socket_child_candidates(lookup, by_device):
+    """Correlate child socket sensors with switches on their actual parent device.
+
+    A device-registry via_device_id relationship is necessary but not enough:
+    require the *full* normalized child device name to match the terminal
+    component of a unique parent switch ID. Never infer based on mere 'Sony'
+    or similar fuzzy matches.
+    """
+    proposed = defaultdict(list)
+    for child_id, child in lookup.items():
+        parent_id = child.get('via_device_id')
+        if not isinstance(parent_id, str) or parent_id not in lookup:
+            continue
+        if (child.get('disabled_by') is not None or
+                (child.get('manufacturer') or '').casefold().strip() != 'tp-link'):
+            continue
+        child_name = child.get('name_by_user') or child.get('name')
+        if not isinstance(child_name, str) or PRIVATE_NAME.search(child_name):
+            continue
+        suffix = re.sub(r'[^a-z0-9]+', '_', child_name.casefold()).strip('_')
+        if len(suffix) < 8:
+            continue
+        observations = meter_readings(by_device.get(child_id, []))
+        if not observations:
+            continue
+        parents = [e for e in by_device.get(parent_id, [])
+                   if e.get('domain') == 'switch' and
+                   e.get('entity_category') not in ('config', 'diagnostic')]
+        matches = [e['entity_id'] for e in parents
+                   if e['entity_id'].split('.', 1)[-1].endswith('_' + suffix)]
+        if len(matches) == 1:
+            proposed[(parent_id, matches[0])].append(observations)
+    # Enforce uniqueness: a single switch cannot inherit two different sockets.
+    return {key: groups[0] for key, groups in proposed.items() if len(groups) == 1}
+
+
 def scan(devices, entities, states=None, services=None, configurations=None, attempted=0):
     if len(devices) > MAX_DEVICES or len(entities) > MAX_ENTITIES:
         raise RuntimeError('Registry exceeds safety limit')
@@ -377,6 +440,9 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
                                    'metadata': metadata.get(entity_id, {}),
                                    'entity_category': (entity.get('entity_category')
                                                        or metadata.get(entity_id, {}).get('entity_category'))})
+    socket_candidates = socket_child_candidates(
+        {d['id']: d for d in devices if isinstance(d, dict) and isinstance(d.get('id'), str)},
+        by_device)
     associations = automation_links(configurations, entity_devices)
     # Raw registry keys remain internal; only one-way opaque lookup keys reach the browser.
     lookup = {d['id']: d for d in devices if isinstance(d, dict) and isinstance(d.get('id'), str)}
@@ -474,6 +540,13 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
                            'No normal outlet switch identified on this registry device.')
         if switch_count > 1:
             outlet_candidates = outlet_meter_candidates(outlet_switches, domains)
+            for switch in outlet_switches:
+                sid = switch['entity_id']
+                registry_match = socket_candidates.get((device_id, sid))
+                if registry_match:
+                    # Registry-linked socket match takes precedence over name
+                    # matching of measurements on the parent strip.
+                    outlet_candidates[sid] = registry_match
         if switch_count == 1:
             for entry in domains:
                 if entry['domain'] != 'sensor':
@@ -500,6 +573,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
             'device_key': public_key,
             'electrical': electrical,
             'outlet_meter_candidates': outlet_candidates,
+            'socket_meter_candidate_ids': [sid for sid in outlet_candidates if (device_id, sid) in socket_candidates],
             'electrical_note': electrical_note,
             'name': name[:90], 'manufacturer': manufacturer[:75], 'model': model[:75],
             'capabilities': guide, 'entity_count': len(domains), 'ideas': ideas,
@@ -523,7 +597,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.13.7', 'mode': 'read-only',
+        'version': '0.13.8', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
