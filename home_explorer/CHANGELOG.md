@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.13.8] — 2026-10-15
+- Match HS300 switches to registered child socket devices using Home Assistant via_device_id plus exact unique normalized socket name.
+- Expose measurements owned by the child socket to that specific parent switch as explicitly provisional socket-registry matches, with no guessed values or device commands.
+- Keep unmatched and ambiguous sockets uncorrelated; test Sony TV connection and invalid parent cases.
+
 ## [0.13.7] — 2026-10-15
 - Add compact switch-state and timestamped electrical badges directly to saved connections.
 - Find *candidate* HS300 outlet readings only when unique same-device sensor IDs share an entire outlet stem and a recognized measurement suffix; mark these unverified, never assert the physical load from identifiers.
