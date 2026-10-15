@@ -2,6 +2,12 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.12.2] — 2026-10-14
+- Show the current application version beside the READ ONLY badge in the header.
+- Collapse the introductory guidance by default while keeping its title visible.
+- Move Refresh devices outside the introductory panel for quick access.
+- Preserve automatic discovery, read-only behavior, and local saved connections.
+
 ## [0.12.1] — 2026-10-14
 - Move Find equipment and Show controls directly above device results, below Connected device relationships.
 - Keep the relationship editor and its saved connections together without separating them from the list search.
