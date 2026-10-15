@@ -254,7 +254,7 @@ async function refreshDevices() {
     get('toolbar').hidden = false;
 
     render();
-  } catch (error) {get('status').textContent = 'Scan unavailable: ' + error.message; get('scan-state').textContent = 'Scan failed'; get('scan-notice').hidden = false;}
+  } catch (error) {get('scan-notice').textContent = 'Scan unavailable: ' + error.message; get('scan-state').textContent = 'Scan failed'; get('scan-notice').hidden = false;}
   finally {get('scan').disabled = false; scanInProgress = false;}
 }
 get('scan').addEventListener('click', refreshDevices);
