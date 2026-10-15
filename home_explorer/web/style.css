@@ -65,3 +65,19 @@
 #map-proposal{padding:10px;border:1px solid #557c7a;border-radius:8px;margin:12px 0}
 
 .mapper-preview{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:12px 0}.mapper-preview>div{background:#142a3c;border:1px solid #385b70;border-radius:9px;padding:10px 12px;min-width:0}.mapper-preview strong{font-size:12px;color:#9de2d6}.mapper-preview p{overflow-wrap:anywhere;margin:6px 0 0}
+
+/* Compact first-use guidance; keep primary action visible. */
+.header-badges{margin-left:auto;display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}
+.header-badges .chip{margin-left:0}
+.app-version{font-size:12px;color:#9ee5c6;font-weight:650;white-space:nowrap}
+.hero-collapsible{margin:0;padding:0;overflow:hidden}
+.hero-collapsible>summary{list-style:none;padding:16px 20px;font-size:20px;font-weight:700;color:#e5f0ff;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.hero-collapsible>summary::-webkit-details-marker{display:none}
+.hero-collapsible>summary::after{content:'⌄';font-size:20px;color:#9ee5c6;transform:rotate(-90deg)}
+.hero-collapsible[open]>summary::after{transform:none}
+.hero-content{padding:0 20px 17px}
+.hero-content p{margin-top:0}
+.hero-content .disclaimer{margin:10px 0 14px}
+.scan-actions{display:flex;align-items:center;margin:10px 0 0}
+.scan-actions button{margin:0}
+@media(max-width:550px){.hero-collapsible>summary{padding:13px 15px;font-size:17px}.hero-content{padding:0 15px 15px}.header-badges{margin-left:auto}}
