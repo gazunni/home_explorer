@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.12.4] — 2026-10-14
+- Remove redundant discovery details and explanatory paragraphs already represented by the dashboard metrics.
+- Show a conditional notice only for failed scans or incomplete automation configuration checks.
+- Keep compact metrics, collapsed relationship editor, and read-only HA access unchanged.
+
 ## [0.12.3] — 2026-10-15
 - Replace discovery paragraphs and large statistic cards with a compact two-row Home Overview.
 - Display registered, shown, Sense, automation, checked, and privacy counts in matching inline boxes.
