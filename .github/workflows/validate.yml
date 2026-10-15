@@ -40,7 +40,7 @@ jobs:
           docker run -d --name home-explorer-smoke -p 18099:8099 home-explorer-ci
           sleep 4
           docker ps --filter name=home-explorer-smoke --filter status=running --format '{{.Names}}' | grep -qx home-explorer-smoke
-          test "$(docker exec home-explorer-smoke ps -o user= -p 1 | tr -d ' ')" != "root"
+          docker exec home-explorer-smoke sh -c "ps -o user,comm | grep -E '^explorer[[:space:]]+python' "
           docker exec home-explorer-smoke su explorer -c 'touch /data/explorer-smoke && rm /data/explorer-smoke'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18099/api/devices)" = "403"
           docker logs home-explorer-smoke
