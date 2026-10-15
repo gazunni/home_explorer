@@ -2,6 +2,12 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.15.4] — 2026-10-15
+- Add per-device Automation Flow Intelligence: group structured trigger, condition and action stages from each individual fetched automation configuration rather than mixing references across automations.
+- Explain which phases are present, sanitized trigger/condition types, and the roles a device directly plays; do not assert causality, runtime order or actual operations.
+- Flag conditional/parallel/repeat structures and templates for manual review without exporting raw configuration, names, times, thresholds or commands.
+- Preserve application-level security, live Power Intelligence and saved relationships.
+
 ## [0.15.3] — 2026-10-15
 - Explicitly whitelist only approved Home Assistant read queries, rejecting service calls, registry mutation and all unexpected query parameters within the app.
 - Serialize discovery scans to avoid concurrent Supervisor WebSocket session amplification; return 429 on overlapping requests.
