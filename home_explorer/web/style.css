@@ -123,3 +123,13 @@
 .review-filter{display:flex;align-items:center;gap:10px;margin:14px 0;color:#a9bacc;font-size:13px}
 .review-filter select{background:#142438;color:#e5f0ff;border:1px solid #416078;border-radius:8px;padding:9px;max-width:100%}
 .review-category{display:inline-block;align-self:flex-start;color:#b4e3d7;background:#214458;border-radius:6px;padding:4px 7px;font-size:12px}
+
+/* v0.13.5: compact relationship rows, non-wrapping actions and optional readings */
+.mapped-pair{align-items:flex-start;min-width:0}
+.mapped-description{min-width:0;flex:1;overflow-wrap:anywhere}
+.mapped-description>strong{display:block;font-size:14px;line-height:1.45;font-weight:600}
+.mapper-section .mapped-pair>button{flex:0 0 auto;white-space:nowrap;min-width:85px;margin:0}
+.mapped-technical{margin:6px 0 0;padding:4px 0 0;border-top:0}
+.mapped-technical summary{font-size:12px;color:#9fd9cc}
+.mapped-technical p{margin:5px 0;font-size:12px;color:#b2c5d6}
+@media(max-width:550px){.mapped-pair{gap:7px}.mapper-section .mapped-pair>button{padding:8px 9px;min-width:72px}}
