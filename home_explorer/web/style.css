@@ -118,3 +118,8 @@
 .registry-review p{font-size:13px;color:#afc0d0;line-height:1.45}
 .review-item{display:flex;flex-direction:column;gap:5px;border-top:1px solid #344a5c;padding:11px 0;font-size:13px}
 .review-item .row-meta{font-size:12px}
+
+/* v0.13.2 registry purpose and reason filters */
+.review-filter{display:flex;align-items:center;gap:10px;margin:14px 0;color:#a9bacc;font-size:13px}
+.review-filter select{background:#142438;color:#e5f0ff;border:1px solid #416078;border-radius:8px;padding:9px;max-width:100%}
+.review-category{display:inline-block;align-self:flex-start;color:#b4e3d7;background:#214458;border-radius:6px;padding:4px 7px;font-size:12px}
