@@ -2,6 +2,10 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.12.1] — 2026-10-14
+- Move Find equipment and Show controls directly above device results, below Connected device relationships.
+- Keep the relationship editor and its saved connections together without separating them from the list search.
+
 ## [0.12.0] — Development candidate
 - Show confirmed upstream outlet state directly in the appliance row.
 - Explain combinations of outlet state and appliance readings without claiming operating status, automation intent, or faults.
