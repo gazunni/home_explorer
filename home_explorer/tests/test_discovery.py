@@ -370,6 +370,50 @@ class ScanTests(unittest.TestCase):
         self.assertFalse(intel['coverage_is_partial'])
         self.assertNotIn('secret_rule',str(result))
 
+    def test_flow_outline_keeps_phases_from_same_configuration(self):
+        devices=[{'id':'temp','name':'Temperature sensor'},{'id':'plug','name':'Pump plug'}]
+        entities=[{'device_id':'temp','entity_id':'sensor.ambient_temperature'},
+                  {'device_id':'plug','entity_id':'switch.pump'}]
+        configurations=[
+          {'alias':'PRIVATE snow plan','triggers':[{'platform':'numeric_state',
+            'entity_id':'sensor.ambient_temperature','below':-3}],
+           'conditions':[{'condition':'state','entity_id':'switch.pump','state':'off'}],
+           'actions':[{'action':'switch.turn_on','target':{'entity_id':'switch.pump'},
+                       'data':{'access_code':'NEVER_EXPOSE'}}]},
+          {'alias':'Unrelated schedule','triggers':[{'platform':'time','at':'23:05:00'}],
+           'actions':[{'action':'notify.message','data':{'message':'SECRET MESSAGE'}}]}]
+        result=scan(devices,entities,configurations=configurations,attempted=2)
+        by_name={device['name']:device for device in result['devices']}
+        temp=by_name['Temperature sensor']['automation_flows']
+        plug=by_name['Pump plug']['automation_flows']
+        self.assertEqual(len(temp),1)
+        self.assertEqual(len(plug),1)
+        self.assertEqual(temp[0]['trigger_types'],['Numeric threshold'])
+        self.assertEqual(temp[0]['roles'],['trigger'])
+        self.assertEqual(plug[0]['roles'],['condition','action'])
+        self.assertEqual(plug[0]['condition_types'],['State'])
+        self.assertTrue(plug[0]['phases']['action'])
+        self.assertNotIn('NEVER_EXPOSE',str(result))
+        self.assertNotIn('PRIVATE snow plan',str(result))
+        self.assertNotIn('23:05',str(result))
+        self.assertNotIn('switch.turn_on',str(result))
+
+    def test_flow_outline_branches_and_templates_not_executed_or_exposed(self):
+        devices=[{'id':'fan','name':'Fan'}]
+        entities=[{'device_id':'fan','entity_id':'switch.fan'}]
+        configs=[{'trigger':[{'platform':'state','entity_id':'switch.fan'}],
+                  'action':[{'choose':[{'conditions':[{'condition':'template',
+                     'value_template':"{{ states('sensor.secret') }}"}],
+                     'sequence':[{'action':'switch.turn_off','target':{'entity_id':'switch.fan'}}]}],
+                     'default':[{'delay':'00:00:01'}]}]}]
+        result=scan(devices,entities,configurations=configs,attempted=1)
+        flow=result['devices'][0]['automation_flows'][0]
+        self.assertTrue(flow['branching'])
+        self.assertTrue(flow['needs_review'])
+        self.assertEqual(flow['roles'],['trigger','action'])
+        self.assertNotIn('sensor.secret',str(result))
+        self.assertNotIn('switch.turn_off',str(result))
+
     def test_automation_explanation_safe_categories(self):
         devices=[{'id':'fan','name':'Fan','manufacturer':'Example'},
                  {'id':'plug','name':'Outlet','manufacturer':'Example'}]
