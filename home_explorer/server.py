@@ -301,6 +301,9 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         metadata[eid] = {
             'friendly_name': attrs.get('friendly_name')[:90] if isinstance(attrs.get('friendly_name'), str) and not PRIVATE_NAME.search(attrs.get('friendly_name')) else None,
             'supported_features': flags if type(flags) is int and 0 <= flags <= 2147483647 else None,
+            'device_class': attrs.get('device_class') if attrs.get('device_class') in ('power', 'current', 'voltage') else None,
+            'unit': attrs.get('unit_of_measurement') if attrs.get('unit_of_measurement') in ('W', 'kW', 'A', 'mA', 'V') else None,
+            'last_updated': item.get('last_updated') if isinstance(item.get('last_updated'), str) else None,
             'options': [v for v in opts[:20]
                         if isinstance(v, str) and len(v) <= 60 and not PRIVATE_NAME.search(v)]
                        if isinstance(opts, list) else []}
@@ -411,8 +414,35 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
                  for k in ('light','fan','climate','vacuum','lawn_mower','cover','humidifier','media_player','switch','sensor')
                  if k in counts][:2]
         public_key = 'device:' + hashlib.sha256(device_id.encode('utf-8')).hexdigest()[:24]
+        electrical = []
+        # Only the owning device can report these measurements. For multi-outlet
+        # strips, these cannot safely be attributed to any particular outlet.
+        switch_count = counts.get('switch', 0)
+        if switch_count == 1:
+            for entry in domains:
+                if entry['domain'] != 'sensor':
+                    continue
+                props = entry.get('metadata', {})
+                kind = props.get('device_class')
+                unit = props.get('unit')
+                if ((kind, unit) not in (('power', 'W'), ('power', 'kW'),
+                                         ('current', 'A'), ('current', 'mA'),
+                                         ('voltage', 'V'))):
+                    continue
+                value = entry['state']
+                try:
+                    measurement = float(value)
+                    if not -1000000 < measurement < 1000000:
+                        continue
+                except (ValueError, TypeError):
+                    continue
+                electrical.append({'kind': kind, 'value': measurement,
+                                   'unit': unit, 'last_updated': props.get('last_updated')})
+                if len(electrical) >= 3:
+                    break
         visible[device_id] = {
             'device_key': public_key,
+            'electrical': electrical,
             'name': name[:90], 'manufacturer': manufacturer[:75], 'model': model[:75],
             'capabilities': guide, 'entity_count': len(domains), 'ideas': ideas,
             'summary': summarize_entities(domains),
@@ -435,7 +465,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.13.4', 'mode': 'read-only',
+        'version': '0.13.5', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
