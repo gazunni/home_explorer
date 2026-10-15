@@ -43,7 +43,7 @@ def read_query(query_type, **parameters):
     if query_type == 'automation/config':
         entity_id = parameters.get('entity_id')
         if (set(parameters) != {'entity_id'} or not isinstance(entity_id, str)
-                or not re.fullmatch(r'automation\\.[a-z0-9_]{1,128}', entity_id)):
+                or not re.fullmatch(r'automation\.[a-z0-9_]{1,128}', entity_id)):
             raise ValueError('Invalid automation reference')
     elif parameters:
         raise ValueError('Unexpected Home Assistant query parameters')
