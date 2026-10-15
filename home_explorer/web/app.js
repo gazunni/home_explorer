@@ -237,9 +237,10 @@ async function refreshDevices() {
     get('automation-checked').textContent = automation.lookup_attempted != null ? String(automation.configurations_checked ?? 0) + '/' + String(automation.lookup_attempted) : '—';
     get('privacy-count').textContent = String(data.hidden_private_devices ?? 0);
     get('scan-state').textContent = 'Scan complete';
-    if (data.automations && false) {
+    if (data.automations && automation.configurations_checked < automation.lookup_attempted) {
       const a = data.automations;
       const incomplete = a.configurations_checked < a.lookup_attempted;
+      get('scan-notice').hidden = false;
       get('scan-notice').textContent = 'Existing automations: ' + a.total + ' detected · ' + a.enabled +
         ' enabled · ' + a.disabled + ' disabled · ' + a.other +
         ' other · ' + a.configurations_checked + ' of ' + a.lookup_attempted +
