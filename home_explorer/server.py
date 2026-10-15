@@ -408,6 +408,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
             'entity_category': attrs.get('entity_category') if attrs.get('entity_category') in ('config', 'diagnostic') else None,
             'unit': attrs.get('unit_of_measurement') if attrs.get('unit_of_measurement') in ('W', 'kW', 'A', 'mA', 'V') else None,
             'last_updated': item.get('last_updated') if isinstance(item.get('last_updated'), str) else None,
+            'last_changed': item.get('last_changed') if isinstance(item.get('last_changed'), str) else None,
             'options': [v for v in opts[:20]
                         if isinstance(v, str) and len(v) <= 60 and not PRIVATE_NAME.search(v)]
                        if isinstance(opts, list) else []}
@@ -510,6 +511,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
             'explanation': CAPABILITY_GUIDE[k][1],
             'access': 'Information only' if k in OBSERVATION_DOMAINS else 'Potential control',
             'members': [{'name': e['label'], 'entity_id': e['entity_id'], 'state': e['state'], 'domain': e['domain'],
+                        'last_changed': e['metadata'].get('last_changed'),
                         'supported_features': e['metadata'].get('supported_features'),
                         'options': e['metadata'].get('options', [])}
                         for e in domains if e['domain'] == k][:100],
@@ -597,7 +599,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.13.8', 'mode': 'read-only',
+        'version': '0.14.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
