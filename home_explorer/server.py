@@ -257,6 +257,65 @@ def automation_links(configurations, device_entities):
             links[device_id][relation] += 1
     return links
 
+def automation_explanations(configurations, device_entities):
+    """Privacy-limited explanation of exact structured automation references.
+
+    Never export automation labels, identifiers, target values, times, templates,
+    service names, or raw configuration. Whitelist generic operation categories.
+    """
+    grouped = defaultdict(lambda: defaultdict(set))
+    allowed = {
+        'state': 'State change', 'numeric_state': 'Numeric threshold',
+        'time': 'Time', 'time_pattern': 'Time pattern',
+        'sun': 'Sun event', 'zone': 'Zone', 'device': 'Device event',
+        'event': 'Event', 'template': 'Template (not interpreted)',
+        'and': 'All conditions', 'or': 'Any condition', 'not': 'Negated condition',
+        'trigger': 'Trigger condition',
+    }
+    for config in (configurations or [])[:100]:
+        if not isinstance(config, dict):
+            continue
+        for plural, singular, role in (('triggers', 'trigger', 'trigger'),
+                                       ('conditions', 'condition', 'condition'),
+                                       ('actions', 'action', 'action')):
+            root = config.get(plural, config.get(singular))
+            stack = [(root, 0)]
+            examined = 0
+            while stack and examined < 600:
+                node, depth = stack.pop()
+                examined += 1
+                if depth > 12:
+                    continue
+                if isinstance(node, list):
+                    stack.extend((x, depth + 1) for x in node[:100])
+                    continue
+                if not isinstance(node, dict):
+                    continue
+                owners = set()
+                for key in ('entity_id', 'device_id'):
+                    raw = node.get(key)
+                    values = raw if isinstance(raw, list) else [raw]
+                    for value in values[:100]:
+                        if isinstance(value, str) and value in device_entities:
+                            owners.add(device_entities[value])
+                if role == 'action':
+                    kind = 'Action target (operation not verified)'
+                else:
+                    raw_kind = node.get('platform') if role == 'trigger' else node.get('condition')
+                    if role == 'trigger' and raw_kind is None:
+                        raw_kind = node.get('trigger')
+                    kind = allowed.get(raw_kind, 'Other structured reference') if isinstance(raw_kind, str) else 'Other structured reference'
+                for owner in owners:
+                    grouped[owner][role].add(kind)
+                for key in ('trigger', 'condition', 'action', 'actions', 'conditions',
+                            'triggers', 'sequence', 'choose', 'default', 'then',
+                            'else', 'repeat', 'parallel', 'target'):
+                    if isinstance(node.get(key), (dict, list)):
+                        stack.append((node[key], depth + 1))
+    return {owner: {role: sorted(values)[:6] for role, values in roles.items()}
+            for owner, roles in grouped.items()}
+
+
 def registry_classification(name, manufacturer, model, disabled_by, entity_total, eligible):
     """Conservative, metadata-only review; never assert a cloud scene was deleted."""
     vendor = manufacturer.casefold().strip()
@@ -445,6 +504,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         {d['id']: d for d in devices if isinstance(d, dict) and isinstance(d.get('id'), str)},
         by_device)
     associations = automation_links(configurations, entity_devices)
+    explanations = automation_explanations(configurations, entity_devices)
     # Raw registry keys remain internal; only one-way opaque lookup keys reach the browser.
     lookup = {d['id']: d for d in devices if isinstance(d, dict) and isinstance(d.get('id'), str)}
     visible = {}
@@ -583,6 +643,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
             'diagnostics': device_diagnostics(domains),
             'power_dependency': power_dependency(name, safe_states, confirmed_dependencies, public_key, name_counts[name] == 1),
             'automation_links': dict(associations.get(device_id, {'trigger':0,'condition':0,'action':0})),
+            'automation_explanations': explanations.get(device_id, {}),
             'observable_categories': sum(1 for k in counts if k in OBSERVATION_DOMAINS),
             'potential_control_categories': sum(1 for k in counts if k in POTENTIAL_CONTROL_DOMAINS),
             'kind': 'Energy-monitor detection' if is_virtual else 'Registered device',
@@ -625,7 +686,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         'scope_note': 'Exact structured references only. Templates, indirect scripts, dynamically addressed entities, and manufacturer-app automations are not resolved. A zero count does not establish that a device is unused.'
     }
     return {
-        'version': '0.15.0', 'mode': 'read-only',
+        'version': '0.15.1', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,

@@ -159,6 +159,11 @@ function render() {
         const mini = elem('div', undefined, 'automation-device-summary');
         mini.append(elem('strong', 'Automation Intelligence · ' + d.automation_insight.review));
         mini.append(elem('p', d.automation_insight.limits));
+        const types = d.automation_explanations || {};
+        for (const role of ['trigger','condition','action'])
+          if (Array.isArray(types[role]) && types[role].length)
+            mini.append(elem('p', role + ': ' + types[role].join(', ')));
+
         body.append(mini);
       }
       const sum = refs.trigger + refs.condition + refs.action;
@@ -330,6 +335,19 @@ function renderAutomationReview() {
     row.append(elem('span', refs.trigger + ' trigger · ' + refs.condition +
       ' condition · ' + refs.action + ' action', 'row-meta'));
     row.append(elem('span', d.automation_insight.review + ' · Exact references only', 'row-meta'));
+    const details = elem('details', undefined, 'automation-explanation');
+    details.append(elem('summary', 'Explain structured references'));
+    const types = d.automation_explanations || {};
+    for (const role of ['trigger','condition','action']) {
+      if (Array.isArray(types[role]) && types[role].length) {
+        const line = elem('p', undefined, 'automation-explanation-line');
+        line.append(elem('strong', role.charAt(0).toUpperCase() + role.slice(1) + ': '));
+        line.append(document.createTextNode(types[role].join(' · ')));
+        details.append(line);
+      }
+    }
+    details.append(elem('p', 'Categories describe explicitly referenced configuration structure only. Thresholds, timings, sequence, outcomes, indirect actions and templates are not interpreted. No automation is executed.', 'automation-caveat'));
+    row.append(details);
     list.append(row);
   }
   if (!selected.length) list.append(elem('p','No devices match this review filter. This is not proof that no automations exist.','hint'));
