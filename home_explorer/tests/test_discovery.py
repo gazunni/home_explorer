@@ -50,6 +50,50 @@ class ScanTests(unittest.TestCase):
                    'attributes':{'device_class':'power','unit_of_measurement':'W'}}]
         self.assertEqual(len(scan(devices,entities,states)['devices'][0]['electrical']),1)
 
+    def test_hs300_socket_registry_child_supplies_sony_tv_measurements(self):
+        devices = [
+          {'id':'parent','name':'TP-LINK Power Strip 74E1','manufacturer':'TP-Link','model':'HS300'},
+          {'id':'socket','name':'Kasa Sony TV Power','manufacturer':'TP-Link',
+           'model':'Socket for HS300(US)','via_device_id':'parent'},
+          {'id':'appliance','name':'SONY XBR-48A9S','manufacturer':'Sony'}]
+        entities = [
+          {'device_id':'parent','entity_id':'switch.tp_link_power_strip_74e1_kasa_sony_tv_power'},
+          {'device_id':'parent','entity_id':'switch.tp_link_power_strip_74e1_kasa_roku_power'},
+          {'device_id':'socket','entity_id':'sensor.socket_actual_power'},
+          {'device_id':'socket','entity_id':'sensor.socket_current'},
+          {'device_id':'socket','entity_id':'sensor.socket_voltage'}]
+        states = [
+          {'entity_id':'sensor.socket_actual_power','state':'63.6',
+           'attributes':{'device_class':'power','unit_of_measurement':'W'}},
+          {'entity_id':'sensor.socket_current','state':'0.59',
+           'attributes':{'device_class':'current','unit_of_measurement':'A'}},
+          {'entity_id':'sensor.socket_voltage','state':'118.3',
+           'attributes':{'device_class':'voltage','unit_of_measurement':'V'}}]
+        result = scan(devices, entities, states)
+        strip = next(d for d in result['devices'] if d['model'] == 'HS300')
+        sid = 'switch.tp_link_power_strip_74e1_kasa_sony_tv_power'
+        self.assertEqual({v['kind'] for v in strip['outlet_meter_candidates'][sid]},
+                         {'power','current','voltage'})
+        self.assertEqual(strip['socket_meter_candidate_ids'], [sid])
+        self.assertNotIn('switch.tp_link_power_strip_74e1_kasa_roku_power',strip['outlet_meter_candidates'])
+        self.assertEqual(strip['electrical'],[])
+
+    def test_socket_wrong_parent_or_ambiguous_not_correlated(self):
+        devices = [
+          {'id':'parent','name':'Strip','manufacturer':'TP-Link','model':'HS300'},
+          {'id':'other','name':'Other strip','manufacturer':'TP-Link','model':'HS300'},
+          {'id':'socket','name':'Kasa Sony TV Power','manufacturer':'TP-Link',
+           'via_device_id':'other'}]
+        entities=[
+          {'device_id':'parent','entity_id':'switch.strip_kasa_sony_tv_power'},
+          {'device_id':'parent','entity_id':'switch.strip_roku_power'},
+          {'device_id':'socket','entity_id':'sensor.socket_voltage'}]
+        states=[{'entity_id':'sensor.socket_voltage','state':'117.9',
+                 'attributes':{'device_class':'voltage','unit_of_measurement':'V'}}]
+        parent=next(d for d in scan(devices, entities, states)['devices'] if d['name']=='Strip')
+        self.assertFalse(parent['socket_meter_candidate_ids'])
+        self.assertEqual(parent['outlet_meter_candidates'],{})
+
     def test_hs300_unique_exact_stem_candidate(self):
         devices=[{'id':'strip','name':'Strip','manufacturer':'TP-Link','model':'HS300'}]
         entities=[
