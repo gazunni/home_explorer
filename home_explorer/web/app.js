@@ -155,6 +155,12 @@ function render() {
     }
     if (d.automation_links) {
       const refs = d.automation_links;
+      if (d.automation_insight && !d.virtual) {
+        const mini = elem('div', undefined, 'automation-device-summary');
+        mini.append(elem('strong', 'Automation Intelligence · ' + d.automation_insight.review));
+        mini.append(elem('p', d.automation_insight.limits));
+        body.append(mini);
+      }
       const sum = refs.trigger + refs.condition + refs.action;
       if (sum) body.append(elem('p', 'Existing automation references: ' + refs.trigger +
         ' trigger · ' + refs.condition + ' condition · ' + refs.action +
@@ -242,6 +248,8 @@ async function refreshDevices() {
     if (data.error) throw new Error(data.error);
     if (!Array.isArray(data.devices)) throw new Error('Invalid response');
     devices = data.devices;
+    automationIntelligence = data.automation_intelligence || {};
+    renderAutomationReview();
     try {
       const mapResponse = await fetch(new URL('api/relationships', root), {credentials:'same-origin',cache:'no-store'});
       mappings = mapResponse.ok ? await mapResponse.json() : {};
@@ -279,6 +287,56 @@ async function refreshDevices() {
   } catch (error) {get('scan-notice').textContent = 'Scan unavailable: ' + error.message; get('scan-state').textContent = 'Scan failed'; get('scan-notice').hidden = false;}
   finally {get('scan').disabled = false; scanInProgress = false;}
 }
+let automationIntelligence = {};
+function renderAutomationReview() {
+  const i = automationIntelligence;
+  const metrics = get('automation-metrics');
+  metrics.replaceChildren();
+  for (const [value, label] of [
+    [i.devices_with_exact_references, 'Devices referenced'],
+    [i.devices_used_in_triggers, 'Trigger sources'],
+    [i.devices_used_in_conditions, 'Condition references'],
+    [i.devices_used_in_actions, 'Action targets'],
+    [i.devices_with_multiple_roles, 'Multiple roles'],
+    [i.devices_without_exact_references, 'No exact reference']
+  ]) {
+    const metric = elem('span', undefined, 'metric');
+    metric.append(elem('strong', String(value ?? '—')));
+    metric.append(document.createTextNode(' · ' + label));
+    metrics.append(metric);
+  }
+  get('automation-review-count').textContent = String(i.configurations_checked ?? '—') + '/' +
+    String(i.configurations_attempted ?? '—') + ' checked';
+  get('automation-review-scope').textContent = (i.scope_note || 'Only exact structured references are inspected.') +
+    (i.coverage_is_partial ? ' Coverage is partial: some configurations were not retrieved.' :
+      ' This confirms inspection of eligible configurations, not all possible indirect references.');
+  const filter = get('automation-filter').value;
+  const selected = devices.filter(d => !d.virtual && d.automation_insight &&
+    (filter === 'none' ? d.automation_insight.roles.length === 0 :
+     filter === 'multi' ? d.automation_insight.roles.length > 1 :
+     filter === 'referenced' ? d.automation_insight.roles.length > 0 :
+     d.automation_insight.roles.includes(filter)));
+  selected.sort((a,b) => {
+    const aRefs = Object.values(a.automation_links || {}).reduce((total,n) => total + n, 0);
+    const bRefs = Object.values(b.automation_links || {}).reduce((total,n) => total + n, 0);
+    return bRefs - aRefs || alpha(a.name,b.name);
+  });
+  const list = get('automation-review-items');
+  list.replaceChildren();
+  for (const d of selected.slice(0, 40)) {
+    const row = elem('div', undefined, 'automation-review-item');
+    row.append(elem('strong', d.name + ' · ' + d.manufacturer));
+    const refs = d.automation_links;
+    row.append(elem('span', refs.trigger + ' trigger · ' + refs.condition +
+      ' condition · ' + refs.action + ' action', 'row-meta'));
+    row.append(elem('span', d.automation_insight.review + ' · Exact references only', 'row-meta'));
+    list.append(row);
+  }
+  if (!selected.length) list.append(elem('p','No devices match this review filter. This is not proof that no automations exist.','hint'));
+  if (selected.length > 40) list.append(elem('p','Showing the first 40 of ' + selected.length + ' devices, ordered by number of exact references.','hint'));
+}
+get('automation-filter').addEventListener('change', renderAutomationReview);
+
 let registryReview = [];
 function renderRegistryReview() {
   const filter = get('review-filter').value;
