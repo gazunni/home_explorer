@@ -4,6 +4,27 @@ from unittest.mock import patch
 from server import scan, referenced_devices, automation_links, registry_request, device_diagnostics, power_dependency, load_power_dependencies, save_power_dependencies
 
 class ScanTests(unittest.TestCase):
+    def test_electrical_snapshot_single_switch_is_read_only(self):
+        device = [{'id':'outlet','name':'Refrigerator','manufacturer':'TP-Link','model':'EP25'}]
+        entities = [{'device_id':'outlet','entity_id':'switch.fridge_power'},
+                    {'device_id':'outlet','entity_id':'sensor.fridge_current_consumption'}]
+        states = [{'entity_id':'switch.fridge_power','state':'on','attributes':{}},
+                  {'entity_id':'sensor.fridge_current_consumption','state':'136.9',
+                   'last_updated':'2026-10-15T01:00:00+00:00',
+                   'attributes':{'device_class':'power','unit_of_measurement':'W'}}]
+        item = scan(device, entities, states)['devices'][0]
+        self.assertEqual(item['electrical'][0]['value'],136.9)
+        self.assertEqual(item['electrical'][0]['kind'],'power')
+        self.assertEqual(item['electrical'][0]['unit'],'W')
+        self.assertEqual(item['electrical'][0]['last_updated'],states[1]['last_updated'])
+    def test_multi_outlet_strip_does_not_attribute_shared_power(self):
+        devices = [{'id':'strip','name':'Power strip','manufacturer':'TP-Link','model':'HS300'}]
+        entities = [{'device_id':'strip','entity_id':'switch.outlet_one'},
+                    {'device_id':'strip','entity_id':'switch.outlet_two'},
+                    {'device_id':'strip','entity_id':'sensor.shared_power'}]
+        states = [{'entity_id':'sensor.shared_power','state':'325',
+                   'attributes':{'device_class':'power','unit_of_measurement':'W'}}]
+        self.assertEqual(scan(devices, entities, states)['devices'][0]['electrical'], [])
     def test_registry_review_distinguishes_disabled_and_virtual(self):
         devices = [
             {'id':'a','name':'Fan Wind Speed Level:2','manufacturer':'tuya','model':'Scene'},
