@@ -1,8 +1,11 @@
-# Home Explorer v0.13.2 — Explore Your Connected Home
+# Home Explorer v0.13.3 — Explore Your Connected Home
 
 **Home Explorer** is a read-only device and capability explorer for Home Assistant, running locally through authenticated Home Assistant Ingress. It helps you understand what Home Assistant can see without issuing commands or modifying devices and automations.
 
-## Current features (v0.13.2)
+## Current features (v0.13.3)
+
+- Relationship picker prioritizes user-facing switch names, shows exact switch entity IDs, and labels ambiguous duplicate appliance registrations rather than silently omitting them.
+
 
 - On-demand discovery of registered devices and their exposed Home Assistant entities.
 - Compact, expandable device rows with manufacturer/model and parent-device information where available.

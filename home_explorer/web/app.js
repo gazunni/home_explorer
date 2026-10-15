@@ -323,7 +323,7 @@ function mapperChoices() {
       if (cap.domain !== 'switch') continue;
       for (const m of cap.members || []) {
         if (m.entity_id.startsWith('switch.'))
-          sources.push({id:m.entity_id, label:d.name + ' · ' + m.name, owner:d.name});
+          sources.push({id:m.entity_id, label:(m.name && m.name !== d.name ? m.name + ' · ' + d.name : d.name) + ' · ' + m.entity_id, owner:d.name});
       }
     }
   }
@@ -349,8 +349,12 @@ function renderMapper() {
   for (const d of names) {
     if (unique.has(d.name)) continue;
     unique.add(d.name);
-    if (devices.filter(x => !x.virtual && x.name === d.name).length !== 1) continue;
-    targetSelect.append(new Option(d.name, d.name));
+    const duplicates = devices.filter(x => !x.virtual && x.name === d.name);
+    if (duplicates.length !== 1) {
+      targetSelect.append(new Option(d.name + ' · multiple registrations (cannot safely link)', '', false, false));
+      continue;
+    }
+    targetSelect.append(new Option(d.name + ' · ' + [d.manufacturer,d.model].filter(Boolean).join(' · '), d.name));
   }
   if ([...targetSelect.options].some(o => o.value === oldTarget))
     targetSelect.value = oldTarget;
