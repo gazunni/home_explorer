@@ -2,6 +2,12 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.12.3] — 2026-10-15
+- Replace discovery paragraphs and large statistic cards with a compact two-row Home Overview.
+- Display registered, shown, Sense, automation, checked, and privacy counts in matching inline boxes.
+- Keep detailed discovery information expandable and relationship editor collapsed by default.
+- Preserve read-only device access and locally saved relationships.
+
 ## [0.12.2] — 2026-10-14
 - Show the current application version beside the READ ONLY badge in the header.
 - Collapse the introductory guidance by default while keeping its title visible.
