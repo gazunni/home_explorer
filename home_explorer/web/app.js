@@ -507,6 +507,58 @@ function mapperChoices() {
   }
   return sources.sort((a,b) => alpha(a.label,b.label));
 }
+
+/* Phase 5: only locally confirmed outlet relationships and sanitized scan data.
+   This view never discovers wiring, causes, or automation execution. */
+function renderDependencies() {
+  const host = get('dependency-items');
+  if (!host) return;
+  host.replaceChildren();
+  const sources = mapperChoices();
+  const entries = Object.entries(mappings);
+  get('dependency-count').textContent = entries.length + ' confirmed links';
+  if (!entries.length) {
+    host.append(elem('p', 'No homeowner-confirmed outlet relationships have been saved.', 'hint'));
+    return;
+  }
+  for (const [target, sourceId] of entries) {
+    const targetDevice = devices.find(d => d.device_key === target) ||
+      (devices.filter(d => d.name === target).length === 1 ? devices.find(d => d.name === target) : null);
+    const outlet = sources.find(s => s.id === sourceId);
+    const line = elem('div', undefined, 'dependency-item');
+    const targetLabel = targetDevice ? targetDevice.name : 'Saved appliance (not matched in this scan)';
+    const sourceLabel = outlet ? outlet.device.name : 'Saved outlet (not matched in this scan)';
+    line.append(elem('strong', sourceLabel + ' → ' + targetLabel));
+    line.append(elem('p', 'Physical outlet-to-appliance relationship: homeowner-confirmed mapping.', 'dependency-evidence'));
+    if (!targetDevice) {
+      line.append(elem('p', 'Appliance could not be uniquely matched in the current visible registry; no status inferred.', 'dependency-caution'));
+    } else {
+      const state = targetDevice.power_dependency && targetDevice.power_dependency.supply_state;
+      const label = state === 'off' ? 'Outlet reported off; appliance supply may be unavailable.' :
+        state === 'on' ? 'Outlet reported on; appliance operation is not proven.' :
+        'Outlet state unavailable; current supply cannot be confirmed.';
+      line.append(elem('p', label, 'dependency-evidence'));
+      const roles = targetDevice.automation_insight && targetDevice.automation_insight.roles || [];
+      line.append(elem('p', roles.length ?
+        'Appliance has exact automation references as: ' + roles.join(', ') + '. Runtime effects are not verified.' :
+        'No exact automation references found for appliance; indirect references remain possible.', 'dependency-evidence'));
+    }
+    if (outlet) {
+      const sourceRoles = outlet.device.automation_insight && outlet.device.automation_insight.roles || [];
+      line.append(elem('p', sourceRoles.includes('action') ?
+        'Source device is referenced as an automation action target. This does not establish that this particular outlet is targeted or controlled.' :
+        'No verified source-device action targeting observed. This does not exclude entity-level or indirect behavior.', 'dependency-evidence'));
+      const measured = (outlet.device.outlet_meter_candidates || {})[sourceId] ||
+        (outlet.device.electrical || []);
+      if (Array.isArray(measured) && measured.length) {
+        line.append(elem('p', 'Electrical observations exist for this outlet/device. Check Power Intelligence for freshness and attribution; values are not evidence of appliance operation.', 'dependency-evidence'));
+      }
+    }
+    host.append(line);
+  }
+  host.append(elem('p', 'Dependency Intelligence uses confirmed local mappings and exact structured references only. It does not infer wiring, automation conflicts, cause, or executed actions.', 'dependency-caution'));
+}
+
 function renderMapper() {
   const sourceSelect = get('map-source');
   const targetSelect = get('map-target-select');
@@ -536,6 +588,7 @@ function renderMapper() {
   existing.replaceChildren();
   const entries = Object.entries(mappings);
   get('map-count').textContent = entries.length + ' saved';
+  renderDependencies();
   for (const [target, source] of entries) {
     const line = elem('div', undefined, 'mapped-pair');
     const displaySource = sources.find(x => x.id === source);
