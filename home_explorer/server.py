@@ -254,10 +254,29 @@ def automation_links(configurations, device_entities):
             links[device_id][relation] += 1
     return links
 
+def registry_classification(name, manufacturer, model, disabled_by, entity_total, eligible):
+    """Conservative, metadata-only review; never assert a cloud scene was deleted."""
+    vendor = manufacturer.casefold().strip()
+    label = name.casefold()
+    if disabled_by is not None:
+        return 'Disabled registration', 'Disabled in Home Assistant; not evidence of deletion.'
+    if (vendor in ('tuya', 'smart life', 'smartlife') and
+            ('wind speed level' in label or 'tap-to-run' in label or 'scene' in label)):
+        return 'Possible Tuya virtual scene', 'Name and integration suggest a scene/preset; verify in Smart Life. Not a physical-device fault.'
+    if 'coordinator' in label or 'bridge' in label or 'hub' in label:
+        return 'Possible infrastructure', 'May be a legitimate integration or network registration.'
+    if entity_total == 0:
+        return 'No registered entities', 'No entity-registry entries linked; this alone does not establish obsolescence.'
+    if eligible == 0:
+        return 'Entities excluded from display', 'Registered entities exist but none qualify for normal display.'
+    return 'Review', 'Inspect this registration in Home Assistant.'
+
+
 def scan(devices, entities, states=None, services=None, configurations=None, attempted=0):
     if len(devices) > MAX_DEVICES or len(entities) > MAX_ENTITIES:
         raise RuntimeError('Registry exceeds safety limit')
     by_device = defaultdict(list)
+    registry_entities = defaultdict(list)
     entity_devices = {}
     states = states or []
     catalog = {}
@@ -297,6 +316,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         entity_id = entity.get('entity_id', '')
         if not isinstance(dev, str) or not isinstance(entity_id, str) or '.' not in entity_id:
             continue
+        registry_entities[dev].append(entity)
         domain = entity_id.split('.', 1)[0]
         label = entity.get('name') or entity.get('original_name') or entity_id.split('.', 1)[-1].replace('_', ' ')
         if not isinstance(label, str) or PRIVATE_NAME.search(entity_id + ' ' + label):
@@ -333,10 +353,29 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         if not domains:
             empty_count += 1
         if disabled_by is not None or not domains:
+            all_entities = registry_entities.get(device_id, [])
+            registered_total = len(all_entities)
+            disabled_entities = sum(e.get('disabled_by') is not None for e in all_entities)
+            private_entities = 0
+            unsupported_entities = 0
+            for e in all_entities:
+                eid = e.get('entity_id', '')
+                label = e.get('name') or e.get('original_name') or eid.split('.', 1)[-1].replace('_', ' ')
+                if isinstance(eid, str) and isinstance(label, str):
+                    if PRIVATE_NAME.search(eid + ' ' + label):
+                        private_entities += 1
+                    elif eid.split('.', 1)[0] not in ALLOWED_DOMAINS:
+                        unsupported_entities += 1
+            category, explanation = registry_classification(
+                name, manufacturer, model, disabled_by, registered_total, len(domains))
             registry_review.append({
                 'name': name[:90], 'manufacturer': manufacturer[:75],
                 'model': model[:75], 'disabled_by': str(disabled_by)[:40] if disabled_by is not None else None,
-                'visible_entities': len(domains),
+                'visible_entities': len(domains), 'registered_entity_count': registered_total,
+                'disabled_entity_count': disabled_entities,
+                'privacy_excluded_count': private_entities,
+                'unsupported_domain_count': unsupported_entities,
+                'category': category, 'explanation': explanation,
                 'review_reason': ('Disabled registration' if disabled_by is not None else 'No eligible visible entities'),
             })
         if not domains or disabled_by is not None:
@@ -389,7 +428,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.13.1', 'mode': 'read-only',
+        'version': '0.13.2', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
