@@ -1,6 +1,7 @@
-"""Home Explorer 0.11.0: on-demand, read-only registry exploration."""
+"""Home Explorer: constrained registry exploration and local relationship storage."""
 import json
 import hashlib
+import logging
 import os
 import re
 from collections import Counter, defaultdict
@@ -8,15 +9,20 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from websockets.sync.client import connect
 
+LOG = logging.getLogger('home_explorer')
+logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
 BASE = Path(__file__).resolve().parent / 'web'
 PORT = 8099
 GATEWAY = '172.30.32.2'
 MAX_DEVICES = 1000
 MAX_ENTITIES = 10000
+# Generic privacy terms only; never check in homeowner identifiers.
+# Letter boundaries prevent "clock" matching "lock" and "outdoor" matching "door".
 PRIVATE_NAME = re.compile(
-    r'(?:camera|door|lock|alarm|siren|presence|location|gps|person|'
+    r'(?<![A-Za-z])(?:camera|door|lock|alarm|siren|presence|location|gps|person|'
     r'ipad|iphone|phone|pixel|galaxy|tablet|webhook|email|'
-    r'motion|leak|moisture|security|secret|credential|token|password|api[_-]?key|fob|@|\b(?:dave|david|cindy|gazunni)\b)', re.IGNORECASE)
+    r'motion|leak|moisture|security|secret|credential|token|password|api[_-]?key|fob)(?![A-Za-z])|@',
+    re.IGNORECASE)
 ALLOWED_DOMAINS = {
     'light', 'switch', 'sensor', 'binary_sensor', 'fan', 'climate',
     'humidifier', 'vacuum', 'lawn_mower', 'cover', 'media_player',
@@ -686,7 +692,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         'scope_note': 'Exact structured references only. Templates, indirect scripts, dynamically addressed entities, and manufacturer-app automations are not resolved. A zero count does not establish that a device is unused.'
     }
     return {
-        'version': '0.15.1', 'mode': 'read-only',
+        'version': '0.15.2', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
@@ -725,7 +731,9 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 data = json.dumps(scan(*registry_request())).encode()
                 return self.reply(200, data, 'application/json')
-            except Exception:
+            except Exception as exc:
+                # Exception messages can include device identifiers: log class only.
+                LOG.warning('Registry scan unavailable (%s)', type(exc).__name__)
                 return self.reply(503, b'{"error":"Registry scan unavailable; see app logs."}', 'application/json')
         for suffix, filename, mime in (('/app.js', 'app.js', 'text/javascript'),
                                         ('/style.css', 'style.css', 'text/css')):

@@ -2,6 +2,13 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.15.2] — 2026-10-15
+- Start Python as an unprivileged explorer user, including persistent `/data` ownership migration.
+- Remove hardcoded personal-name privacy keywords from the public repository; apply token-boundary filtering to reduce false positives.
+- Add sanitized error logging and tests for gateway restrictions, relationship-update headers, and request-size limits.
+- Align release metadata and add CI version consistency checks.
+- Existing device/automation discovery and locally stored relationships remain unchanged.
+
 ## [0.15.1] — 2026-10-15
 - Explain allowed structural trigger and condition categories on directly referenced devices; label action targets without asserting an executed command.
 - Provide expandable per-device explanations in Automation Intelligence and within the device view.

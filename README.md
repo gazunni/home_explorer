@@ -1,8 +1,8 @@
-# Home Explorer v0.15.1 — Explore Your Connected Home
+# Home Explorer v0.15.2 — Explore Your Connected Home
 
-**Home Explorer** is a read-only device and capability explorer for Home Assistant, running locally through authenticated Home Assistant Ingress. It helps you understand what Home Assistant can see without issuing commands or modifying devices and automations.
+**Home Explorer** is an application designed for read-only device and capability explorer for Home Assistant, running locally through authenticated Home Assistant Ingress. It helps you understand what Home Assistant can see without issuing commands or modifying devices and automations.
 
-## Current features (v0.15.1)
+## Current features (v0.15.2)
 
 - Relationship selections use unique opaque device keys, distinguishing same-name TP-Link and LG ThinQ registrations. Existing name-keyed relationships remain readable for unambiguous device names.
 
@@ -28,7 +28,7 @@
 - Manufacturer-app-only functionality **cannot** be established from Home Assistant registries.
 - Unknown or unavailable states should not be interpreted as device faults.
 - Private-name filtering is heuristic, not guaranteed anonymization. Review screenshots before sharing.
-- Supervisor access remains server-side and should be protected. Entity identifiers and filtered state values are shown only to authenticated users of the local application.
+- Supervisor access remains server-side and has broader Home Assistant capabilities than the application's deliberately limited operations. The read-only designation describes application behavior, not a token-level read-only permission. Entity identifiers and filtered state values are shown only to authenticated users of the local application.
 - Automation definitions are inspected only in memory for exact entity/device references, without exposing raw configurations; suggestions are not verified automations.
 
 ## Installation and updates
@@ -47,7 +47,7 @@ Full instructions: [INSTALLATION.md](INSTALLATION.md).
 
 ## Version history
 
-Current version: **0.13.2** (October 14, 2026).
+Current version: **0.15.2** (October 15, 2026).
 
 See the [complete changelog](home_explorer/CHANGELOG.md) for release-by-release details. Release history is maintained there rather than appended to this README.
 
