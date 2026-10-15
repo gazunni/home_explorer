@@ -146,6 +146,9 @@ function render() {
     if (d.related_to) body.append(elem('p', 'Part of: ' + d.related_to, 'related'));
     body.append(elem('h4', 'What Home Assistant exposes (' + d.entity_count + ')'));
     const list = elem('div', undefined, 'guide');
+    const compactOff = d.power_dependency && d.power_dependency.supply_state === 'off';
+    let hiddenUnavailable = 0;
+    const hiddenEntries = elem('div', undefined, 'entity-members');
     for (const cap of d.capabilities) {
       const section = elem('section', undefined, 'capability-group');
       section.append(elem('h4', cap.type + ' · ' + cap.entities + ' · ' + cap.access));
@@ -169,10 +172,23 @@ function render() {
         detail.append(elem('p', capabilityNote(member.domain || cap.domain), 'service-note'));
         detail.append(elem('p', 'No services have been invoked or tested. Actual control availability depends on the integration, entity and permissions.', 'service-warning'));
         entry.append(detail);
-        members.append(entry);
+        if (compactOff && member.state === 'unavailable') {
+          hiddenEntries.append(entry);
+          hiddenUnavailable++;
+        } else {
+          members.append(entry);
+        }
       }
-      section.append(members);
-      list.append(section);
+      if (members.childElementCount) {
+        section.append(members);
+        list.append(section);
+      }
+    }
+    if (hiddenUnavailable) {
+      const folded = elem('details', undefined, 'technical-details');
+      folded.append(elem('summary', hiddenUnavailable + ' unavailable readings — expand for individual entities and technical details'));
+      folded.append(hiddenEntries);
+      list.append(folded);
     }
     body.append(list);
     if (d.virtual) {
