@@ -323,7 +323,7 @@ function mapperChoices() {
       if (cap.domain !== 'switch') continue;
       for (const m of cap.members || []) {
         if (m.entity_id.startsWith('switch.'))
-          sources.push({id:m.entity_id, label:(m.name && m.name !== d.name ? m.name + ' · ' + d.name : d.name) + ' · ' + m.entity_id, owner:d.name});
+          sources.push({id:m.entity_id, label:(m.name && m.name !== d.name ? m.name + ' · ' + d.name : d.name) + ' · ' + m.entity_id + ' · ' + d.manufacturer, owner:d.device_key, device:d});
       }
     }
   }
@@ -345,16 +345,11 @@ function renderMapper() {
     [d.name,d.manufacturer,d.model,...d.capabilities.flatMap(c => (c.members || []).map(m => m.name))]
       .join(' ').toLocaleLowerCase().includes(query))
     .sort((a,b) => alpha(a.name,b.name));
-  const unique = new Set();
   for (const d of names) {
-    if (unique.has(d.name)) continue;
-    unique.add(d.name);
-    const duplicates = devices.filter(x => !x.virtual && x.name === d.name);
-    if (duplicates.length !== 1) {
-      targetSelect.append(new Option(d.name + ' · multiple registrations (cannot safely link)', '', false, false));
-      continue;
-    }
-    targetSelect.append(new Option(d.name + ' · ' + [d.manufacturer,d.model].filter(Boolean).join(' · '), d.name));
+    const duplicate = devices.some(x => x !== d && x.name === d.name);
+    const label = d.name + ' · ' + [d.manufacturer,d.model].filter(Boolean).join(' · ') +
+      (duplicate ? ' · distinct registration' : '');
+    targetSelect.append(new Option(label, d.device_key));
   }
   if ([...targetSelect.options].some(o => o.value === oldTarget))
     targetSelect.value = oldTarget;
@@ -366,7 +361,9 @@ function renderMapper() {
   for (const [target, source] of entries) {
     const line = elem('div', undefined, 'mapped-pair');
     const displaySource = sources.find(x => x.id === source);
-    line.append(elem('span', (displaySource ? displaySource.label : 'Unavailable source') + ' → ' + target));
+    const targetDevice = devices.find(d => d.device_key === target) || devices.find(d => d.name === target);
+    line.append(elem('span', (displaySource ? displaySource.label : 'Unavailable source') + ' → ' + (targetDevice ? targetDevice.name + ' · ' + targetDevice.manufacturer : target)));
+
     const remove = elem('button', 'Remove');
     remove.type = 'button';
     remove.addEventListener('click', () => {
@@ -398,8 +395,8 @@ async function persistMappings(next) {
 }
 function updateMapperPreview() {
   const source = mapperChoices().find(x => x.id === get('map-source').value);
-  const target = devices.find(x => !x.virtual && x.name === get('map-target-select').value);
-  const sourceDevice = source && devices.find(x => !x.virtual && x.name === source.owner);
+  const target = devices.find(x => !x.virtual && x.device_key === get('map-target-select').value);
+  const sourceDevice = source && source.device;
   const sourceMeta = sourceDevice ? [sourceDevice.manufacturer,sourceDevice.model].filter(Boolean).join(' · ') : '';
   const targetMeta = target ? [target.manufacturer,target.model].filter(Boolean).join(' · ') : '';
   get('map-source-info').textContent = source ? source.label + (sourceMeta ? ' — ' + sourceMeta : '') : 'Select a power source to see its details.';
@@ -430,7 +427,8 @@ get('map-add').addEventListener('click', () => {
     return;
   }
   proposedTarget = target;
-  get('map-target').textContent = target;
+  const targetDevice = devices.find(d => d.device_key === target);
+   get('map-target').textContent = targetDevice ? targetDevice.name + ' · ' + targetDevice.manufacturer : target;
   get('map-source-label').textContent = owner.label;
   get('map-proposal').hidden = false;
 });
