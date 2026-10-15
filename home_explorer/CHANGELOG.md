@@ -2,6 +2,14 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.15.3] — 2026-10-15
+- Explicitly whitelist only approved Home Assistant read queries, rejecting service calls, registry mutation and all unexpected query parameters within the app.
+- Serialize discovery scans to avoid concurrent Supervisor WebSocket session amplification; return 429 on overlapping requests.
+- Reject unsupported transfer-encoded relationship changes and restrict mutation to the existing local JSON mapping endpoint.
+- Add security regression tests for disallowed HA requests, incorrect automation IDs, parallel scans, and forbidden HTTP routes.
+- Clarify that Home Assistant Ingress authorizes callers and the Supervisor token itself remains capable of broader operations; this is application-level defense in depth, not token-level least privilege.
+- Preserve saved `/data` relationships and previous discovery behavior.
+
 ## [0.15.2] — 2026-10-15
 - Start Python as an unprivileged explorer user, including persistent `/data` ownership migration.
 - Remove hardcoded personal-name privacy keywords from the public repository; apply token-boundary filtering to reduce false positives.
