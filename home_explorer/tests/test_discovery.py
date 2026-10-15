@@ -17,6 +17,39 @@ class ScanTests(unittest.TestCase):
         self.assertEqual(item['electrical'][0]['kind'],'power')
         self.assertEqual(item['electrical'][0]['unit'],'W')
         self.assertEqual(item['electrical'][0]['last_updated'],states[1]['last_updated'])
+    def test_ep25_outlet_and_led_config_expose_power_current_voltage(self):
+        devices = [{'id':'ep25','name':'Refrigerator','manufacturer':'TP-Link','model':'EP25'}]
+        entities = [
+            {'device_id':'ep25','entity_id':'switch.refrigerator_2'},
+            {'device_id':'ep25','entity_id':'switch.refrigerator_led','entity_category':'config'},
+            {'device_id':'ep25','entity_id':'sensor.fridge_power'},
+            {'device_id':'ep25','entity_id':'sensor.fridge_current'},
+            {'device_id':'ep25','entity_id':'sensor.fridge_voltage'},
+        ]
+        values = [('sensor.fridge_power','147.9','power','W'),
+                  ('sensor.fridge_current','2.00','current','A'),
+                  ('sensor.fridge_voltage','117.8','voltage','V')]
+        states = [{'entity_id':eid,'state':v,
+                   'last_updated':'2026-10-15T01:40:00+00:00',
+                   'attributes':{'device_class':kind,'unit_of_measurement':unit}}
+                  for eid,v,kind,unit in values]
+        result = scan(devices,entities,states)
+        measured = result['devices'][0]['electrical']
+        self.assertEqual(len(measured),3)
+        self.assertEqual({x['kind'] for x in measured},{'power','current','voltage'})
+        self.assertIn('single normal switch', result['devices'][0]['electrical_note'])
+
+    def test_config_switch_category_from_state_can_disambiguate(self):
+        devices = [{'id':'ep25','name':'Refrigerator','manufacturer':'TP-Link','model':'EP25'}]
+        entities = [{'device_id':'ep25','entity_id':'switch.fridge'},
+                    {'device_id':'ep25','entity_id':'switch.fridge_led'},
+                    {'device_id':'ep25','entity_id':'sensor.fridge_power'}]
+        states = [{'entity_id':'switch.fridge_led','state':'on',
+                   'attributes':{'entity_category':'config'}},
+                  {'entity_id':'sensor.fridge_power','state':'100',
+                   'attributes':{'device_class':'power','unit_of_measurement':'W'}}]
+        self.assertEqual(len(scan(devices,entities,states)['devices'][0]['electrical']),1)
+
     def test_multi_outlet_strip_does_not_attribute_shared_power(self):
         devices = [{'id':'strip','name':'Power strip','manufacturer':'TP-Link','model':'HS300'}]
         entities = [{'device_id':'strip','entity_id':'switch.outlet_one'},

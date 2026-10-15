@@ -336,7 +336,7 @@ function sourceSnapshot(source) {
   if ((owner.electrical || []).length)
     observations.push('Electrical readings are observations, not proof of appliance operation. They may lag the switch state.');
   else
-    observations.push('No attributable power/current/voltage measurement on this single-outlet device, or this is a multi-outlet strip.');
+    observations.push((owner.electrical_note || 'Electrical measurements were not attributed.') + ' No supported current measurement is available for this source.');
   return observations;
 }
 /* Compact touch-first relationship editor. No nested scrolling or drag requirement. */

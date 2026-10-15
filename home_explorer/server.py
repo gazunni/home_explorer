@@ -302,6 +302,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
             'friendly_name': attrs.get('friendly_name')[:90] if isinstance(attrs.get('friendly_name'), str) and not PRIVATE_NAME.search(attrs.get('friendly_name')) else None,
             'supported_features': flags if type(flags) is int and 0 <= flags <= 2147483647 else None,
             'device_class': attrs.get('device_class') if attrs.get('device_class') in ('power', 'current', 'voltage') else None,
+            'entity_category': attrs.get('entity_category') if attrs.get('entity_category') in ('config', 'diagnostic') else None,
             'unit': attrs.get('unit_of_measurement') if attrs.get('unit_of_measurement') in ('W', 'kW', 'A', 'mA', 'V') else None,
             'last_updated': item.get('last_updated') if isinstance(item.get('last_updated'), str) else None,
             'options': [v for v in opts[:20]
@@ -333,7 +334,9 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
             entity_devices[dev] = dev
             by_device[dev].append({'domain': domain, 'entity_id': entity_id,
                                    'label': label[:90], 'state': safe_states.get(entity_id, 'Not available'),
-                                   'metadata': metadata.get(entity_id, {})})
+                                   'metadata': metadata.get(entity_id, {}),
+                                   'entity_category': (entity.get('entity_category')
+                                                       or metadata.get(entity_id, {}).get('entity_category'))})
     associations = automation_links(configurations, entity_devices)
     # Raw registry keys remain internal; only one-way opaque lookup keys reach the browser.
     lookup = {d['id']: d for d in devices if isinstance(d, dict) and isinstance(d.get('id'), str)}
@@ -417,7 +420,17 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         electrical = []
         # Only the owning device can report these measurements. For multi-outlet
         # strips, these cannot safely be attributed to any particular outlet.
-        switch_count = counts.get('switch', 0)
+        # Ignore configuration and diagnostic switches (e.g. EP25 LED).
+        # They are not independently switched mains outlets.
+        outlet_switches = [e for e in domains if e['domain'] == 'switch'
+                           and e.get('entity_category') not in ('config', 'diagnostic')]
+        switch_count = len(outlet_switches)
+        electrical_note = ('Electrical readings belong to the single normal switch on this device.'
+                           if switch_count == 1 else
+                           'Electrical readings not attributed: ' + str(switch_count) +
+                           ' normal switches share this registry device.'
+                           if switch_count > 1 else
+                           'No normal outlet switch identified on this registry device.')
         if switch_count == 1:
             for entry in domains:
                 if entry['domain'] != 'sensor':
@@ -443,6 +456,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         visible[device_id] = {
             'device_key': public_key,
             'electrical': electrical,
+            'electrical_note': electrical_note,
             'name': name[:90], 'manufacturer': manufacturer[:75], 'model': model[:75],
             'capabilities': guide, 'entity_count': len(domains), 'ideas': ideas,
             'summary': summarize_entities(domains),
@@ -465,7 +479,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.13.5', 'mode': 'read-only',
+        'version': '0.13.6', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
