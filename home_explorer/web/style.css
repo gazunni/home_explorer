@@ -96,3 +96,6 @@
 .overview-details #automation-status{font-size:13px;margin:6px 0}
 .mapper-section>details{margin-top:0}
 @media(max-width:550px){.overview{padding:10px}.metric{font-size:12px;padding:6px 8px}.metric strong{font-size:13px}}
+
+/* v0.12.4: conditional discovery warnings only */
+.scan-notice{margin:10px 0 0;padding:9px 12px;border:1px solid #987548;border-radius:8px;color:#f0d8a6;background:#302b24;font-size:13px}
