@@ -133,3 +133,7 @@
 .mapped-technical summary{font-size:12px;color:#9fd9cc}
 .mapped-technical p{margin:5px 0;font-size:12px;color:#b2c5d6}
 @media(max-width:550px){.mapped-pair{gap:7px}.mapper-section .mapped-pair>button{padding:8px 9px;min-width:72px}}
+
+/* v0.13.7 compact electrical observations; candidate readings are not verified */
+.mapped-summary{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0 3px}
+.mapped-pill{display:inline-block;border:1px solid #406071;background:#182f40;border-radius:6px;padding:3px 7px;font-size:12px;color:#cae4df;white-space:normal}
