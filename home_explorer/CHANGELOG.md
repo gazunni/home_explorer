@@ -2,6 +2,12 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.16.0] — 2026-10-15
+- Begin Phase 5 with compact, read-only Dependency Intelligence over existing homeowner-confirmed power mappings.
+- Relate confirmed physical links to reported outlet state, available electrical observations, and device-level automation role summaries while explicitly stating evidence limits.
+- No new Home Assistant queries or permissions; preserve private /data mappings and existing Power Intelligence.
+- Defer speculative conflict and opportunity analysis to later versioned releases.
+
 ## [0.15.4] — 2026-10-15
 - Add per-device Automation Flow Intelligence: group structured trigger, condition and action stages from each individual fetched automation configuration rather than mixing references across automations.
 - Explain which phases are present, sanitized trigger/condition types, and the roles a device directly plays; do not assert causality, runtime order or actual operations.
