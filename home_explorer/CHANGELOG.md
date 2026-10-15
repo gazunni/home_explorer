@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.13.0] — 2026-10-14
+- Add device-level reading intelligence with conservative status indicators and explanatory panels.
+- Distinguish confirmed upstream power off from unavailable readings while avoiding unsupported hardware-fault conclusions.
+- Explain unknown, unavailable, and fully reporting entity states; preserve read-only behavior.
+
 ## [0.12.4] — 2026-10-14
 - Remove redundant discovery details and explanatory paragraphs already represented by the dashboard metrics.
 - Show a conditional notice only for failed scans or incomplete automation configuration checks.
