@@ -348,6 +348,35 @@ function renderAutomationReview() {
     }
     details.append(elem('p', 'Categories describe explicitly referenced configuration structure only. Thresholds, timings, sequence, outcomes, indirect actions and templates are not interpreted. No automation is executed.', 'automation-caveat'));
     row.append(details);
+    const flows = Array.isArray(d.automation_flows) ? d.automation_flows : [];
+    if (flows.length) {
+      const flowDetail = elem('details', undefined, 'automation-explanation flow-outline');
+      flowDetail.append(elem('summary', 'View connected automation flows (' + flows.length + ')'));
+      for (let index = 0; index < flows.length; index++) {
+        const flow = flows[index];
+        const outline = elem('div', undefined, 'automation-flow');
+        outline.append(elem('strong', 'Configuration ' + (index + 1) +
+          ' · Device roles: ' + flow.roles.join(', ')));
+        for (const [role, label, types] of [
+          ['trigger', 'WHEN — triggers', flow.trigger_types],
+          ['condition', 'IF — conditions', flow.condition_types],
+          ['action', 'THEN — actions', flow.action_types]
+        ]) {
+          const line = elem('p', undefined, 'automation-flow-line');
+          line.append(elem('strong', label + ': '));
+          line.append(document.createTextNode(flow.phases[role] ?
+            (types.length ? types.join(' · ') : 'Present (type not interpreted)') :
+            'Not specified at top level'));
+          outline.append(line);
+        }
+        if (flow.branching) outline.append(elem('p', 'Conditional/parallel/repeated steps detected; execution order not inferred.', 'automation-flow-caution'));
+        if (flow.needs_review) outline.append(elem('p', 'Template or unsupported/limited structure needs manual review.', 'automation-flow-caution'));
+        outline.append(elem('p', flow.description, 'automation-caveat'));
+        flowDetail.append(outline);
+      }
+      flowDetail.append(elem('p','All phases listed for one configuration, not proof of causality or execution. Sensitive names, thresholds and actions are deliberately omitted.','automation-caveat'));
+      row.append(flowDetail);
+    }
     list.append(row);
   }
   if (!selected.length) list.append(elem('p','No devices match this review filter. This is not proof that no automations exist.','hint'));
