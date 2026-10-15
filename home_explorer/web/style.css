@@ -109,3 +109,12 @@
 .health-panel strong{font-size:13px;color:#c4e9e1}
 .health-panel p{margin:6px 0;font-size:13px;color:#c0d1df;line-height:1.45}
 .health-panel small{font-size:12px;color:#a9bacc}
+
+/* v0.13.1 read-only registry review */
+.registry-review{margin:12px 0}
+.registry-review details{border:1px solid #426178;border-radius:12px;background:#0f2132;padding:14px 18px}
+.registry-review summary{cursor:pointer;display:flex;justify-content:space-between;gap:12px;color:#b6e3d8;font-weight:600}
+.registry-review summary span{font-size:12px;font-weight:500}
+.registry-review p{font-size:13px;color:#afc0d0;line-height:1.45}
+.review-item{display:flex;flex-direction:column;gap:5px;border-top:1px solid #344a5c;padding:11px 0;font-size:13px}
+.review-item .row-meta{font-size:12px}
