@@ -2,6 +2,12 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.15.1] — 2026-10-15
+- Explain allowed structural trigger and condition categories on directly referenced devices; label action targets without asserting an executed command.
+- Provide expandable per-device explanations in Automation Intelligence and within the device view.
+- Preserve exact-reference-only analysis and avoid exposing automation labels, rule values, service calls, schedules, templates or secret values.
+- Remain read-only and retain existing electrical relationships.
+
 ## [0.15.0] — 2026-10-15
 - Introduce a compact, collapsed-by-default Automation Intelligence panel with exact-reference coverage metrics and device role filters.
 - Explain verified trigger, condition and action references by device without exposing automation names or configuration rules.
