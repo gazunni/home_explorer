@@ -17,6 +17,18 @@ class ScanTests(unittest.TestCase):
         self.assertEqual(item['electrical'][0]['kind'],'power')
         self.assertEqual(item['electrical'][0]['unit'],'W')
         self.assertEqual(item['electrical'][0]['last_updated'],states[1]['last_updated'])
+    def test_switch_transition_is_included_for_power_evidence(self):
+        devices=[{'id':'plug','name':'Refrigerator','manufacturer':'TP-Link','model':'EP25'}]
+        entities=[{'device_id':'plug','entity_id':'switch.refrigerator_2'}]
+        states=[{'entity_id':'switch.refrigerator_2','state':'on',
+                 'last_changed':'2026-10-15T13:37:00-04:00',
+                 'last_updated':'2026-10-15T13:37:00-04:00',
+                 'attributes':{'friendly_name':'Refrigerator'}}]
+        result=scan(devices,entities,states)
+        members=[m for cap in result['devices'][0]['capabilities'] for m in cap['members']]
+        self.assertEqual(members[0]['last_changed'],'2026-10-15T13:37:00-04:00')
+        self.assertEqual(members[0]['state'],'on')
+
     def test_ep25_outlet_and_led_config_expose_power_current_voltage(self):
         devices = [{'id':'ep25','name':'Refrigerator','manufacturer':'TP-Link','model':'EP25'}]
         entities = [

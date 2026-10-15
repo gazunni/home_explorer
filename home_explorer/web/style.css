@@ -137,3 +137,8 @@
 /* v0.13.7 compact electrical observations; candidate readings are not verified */
 .mapped-summary{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0 3px}
 .mapped-pill{display:inline-block;border:1px solid #406071;background:#182f40;border-radius:6px;padding:3px 7px;font-size:12px;color:#cae4df;white-space:normal}
+
+/* v0.14.0 power evidence: values are last observations, never assertions of operation */
+.mapped-interpretation{font-size:12px;line-height:1.45;color:#abc6d3;margin:6px 0}
+.mapped-pill.mapped-caution{border-color:#886c4d;color:#f2d5a6;background:#352c26}
+.mapped-pill.mapped-recent{border-color:#406e66;color:#b9ebdb}
