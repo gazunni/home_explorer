@@ -313,6 +313,9 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
     visible = {}
     hidden = 0
     virtual_count = 0
+    registry_review = []
+    disabled_count = 0
+    empty_count = 0
     for device_id, device in lookup.items():
         name = device.get('name_by_user') or device.get('name') or device.get('model') or 'Unnamed device'
         manufacturer = device.get('manufacturer') or 'Unknown manufacturer'
@@ -324,7 +327,19 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
             hidden += 1
             continue
         domains = by_device.get(device_id, [])
+        disabled_by = device.get('disabled_by')
+        if disabled_by is not None:
+            disabled_count += 1
         if not domains:
+            empty_count += 1
+        if disabled_by is not None or not domains:
+            registry_review.append({
+                'name': name[:90], 'manufacturer': manufacturer[:75],
+                'model': model[:75], 'disabled_by': str(disabled_by)[:40] if disabled_by is not None else None,
+                'visible_entities': len(domains),
+                'review_reason': ('Disabled registration' if disabled_by is not None else 'No eligible visible entities'),
+            })
+        if not domains or disabled_by is not None:
             continue
         counts = Counter(e['domain'] for e in domains)
         # Sense virtual detection is limited to known Sense integration metadata.
@@ -374,10 +389,13 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.12.0', 'mode': 'read-only',
+        'version': '0.13.1', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
+        'disabled_registrations': disabled_count,
+        'empty_visible_registrations': empty_count,
+        'registry_review': sorted(registry_review, key=lambda x: x['name'].casefold())[:250],
         'automations': {**automation_counts(states), 'configurations_checked': len(configurations or []), 'lookup_attempted': attempted},
         'devices': result[:500],
         'note': 'Potential control does not establish an executable command. Whether a feature requires a manufacturer app cannot be determined from registry data. Suggestions are examples only; device commands and current automations have not been verified.'
