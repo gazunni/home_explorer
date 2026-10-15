@@ -2,6 +2,12 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.13.4] — 2026-10-15
+- Resolve identical friendly-name devices by opaque unique device keys, not names.
+- Show actual TP-Link source manufacturer and LG ThinQ appliance independently.
+- Preserve legacy name-keyed mappings for unambiguous device names.
+
+
 ## [0.13.3] — 2026-10-15
 - Improve switch selector labels using Home Assistant friendly names and show exact switch entity IDs.
 - Explain ambiguous duplicate appliance registrations instead of silently omitting them from the picker.
