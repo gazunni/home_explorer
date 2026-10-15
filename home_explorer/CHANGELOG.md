@@ -2,6 +2,12 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.13.6] — 2026-10-15
+- Correct single-outlet electrical monitoring when an EP25 also exposes a configuration switch such as its LED.
+- Distinguish outlet switches from configuration/diagnostic switches using Home Assistant entity categories.
+- Keep shared multi-outlet measurements unassigned and show the reason when readings cannot be correlated.
+- Add EP25 regression tests for power, current, voltage and entity-category fallbacks.
+
 ## [0.13.5] — 2026-10-15
 - Show concise saved outlet-to-appliance relationship labels; move technical IDs into expandable details.
 - Prevent Remove controls from wrapping on tablets and phones.
