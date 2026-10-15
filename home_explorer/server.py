@@ -1,5 +1,6 @@
 """Home Explorer 0.11.0: on-demand, read-only registry exploration."""
 import json
+import hashlib
 import os
 import re
 from collections import Counter, defaultdict
@@ -172,9 +173,11 @@ def save_power_dependencies(mapping, path=DEPENDENCY_FILE):
     temp.replace(path)
     return len(mapping)
 
-def power_dependency(name, states, dependencies=None):
+def power_dependency(name, states, dependencies=None, device_key=None, name_is_unique=True):
     mapping = load_power_dependencies() if dependencies is None else dependencies
-    entity_id = mapping.get(name)
+    entity_id = mapping.get(device_key) if device_key else None
+    if not entity_id and name_is_unique:
+        entity_id = mapping.get(name)  # Legacy name-keyed relationships
     if not entity_id:
         return None
     state = states.get(entity_id, 'Not available')
@@ -329,7 +332,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
                                    'label': label[:90], 'state': safe_states.get(entity_id, 'Not available'),
                                    'metadata': metadata.get(entity_id, {})})
     associations = automation_links(configurations, entity_devices)
-    # Internal registry keys are used only for grouping and are NEVER returned to the browser.
+    # Raw registry keys remain internal; only one-way opaque lookup keys reach the browser.
     lookup = {d['id']: d for d in devices if isinstance(d, dict) and isinstance(d.get('id'), str)}
     visible = {}
     hidden = 0
@@ -337,6 +340,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
     registry_review = []
     disabled_count = 0
     empty_count = 0
+    name_counts = Counter((d.get('name_by_user') or d.get('name') or d.get('model') or 'Unnamed device') for d in lookup.values())
     for device_id, device in lookup.items():
         name = device.get('name_by_user') or device.get('name') or device.get('model') or 'Unnamed device'
         manufacturer = device.get('manufacturer') or 'Unknown manufacturer'
@@ -406,12 +410,14 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         ideas = [{'title': IDEAS[k][0], 'description': IDEAS[k][1]}
                  for k in ('light','fan','climate','vacuum','lawn_mower','cover','humidifier','media_player','switch','sensor')
                  if k in counts][:2]
+        public_key = 'device:' + hashlib.sha256(device_id.encode('utf-8')).hexdigest()[:24]
         visible[device_id] = {
+            'device_key': public_key,
             'name': name[:90], 'manufacturer': manufacturer[:75], 'model': model[:75],
             'capabilities': guide, 'entity_count': len(domains), 'ideas': ideas,
             'summary': summarize_entities(domains),
             'diagnostics': device_diagnostics(domains),
-            'power_dependency': power_dependency(name, safe_states, confirmed_dependencies),
+            'power_dependency': power_dependency(name, safe_states, confirmed_dependencies, public_key, name_counts[name] == 1),
             'automation_links': dict(associations.get(device_id, {'trigger':0,'condition':0,'action':0})),
             'observable_categories': sum(1 for k in counts if k in OBSERVATION_DOMAINS),
             'potential_control_categories': sum(1 for k in counts if k in POTENTIAL_CONTROL_DOMAINS),
@@ -429,7 +435,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
     return {
-        'version': '0.13.3', 'mode': 'read-only',
+        'version': '0.13.4', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
