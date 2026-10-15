@@ -314,6 +314,31 @@ get('scan').addEventListener('click', refreshDevices);
 refreshDevices();
 
 
+/* The mapping is saved by exact switch entity ID and opaque device key, not labels. */
+function shortOutlet(source) {
+  const d = source.device;
+  const original = source.memberName || d.name;
+  const stripped = original.startsWith(d.name + ' ') ? original.slice(d.name.length + 1) : original;
+  const name = stripped || d.name;
+  return name + ' (' + d.manufacturer + (d.model && !d.model.startsWith('Unknown') ? ' ' + d.model : '') + ')';
+}
+function sourceSnapshot(source) {
+  const owner = source.device;
+  const matches = owner.capabilities.flatMap(c => c.members || []).filter(m => m.entity_id === source.id);
+  const current = matches.length ? matches[0].state : 'Not available';
+  const sw = current === 'on' ? 'On (reported)' : current === 'off' ? 'Off (reported)' : 'Unknown';
+  const observations = ['Switch: ' + sw];
+  for (const reading of owner.electrical || []) {
+    const time = Date.parse(reading.last_updated || '');
+    const age = Number.isFinite(time) ? Math.max(0, Math.round((Date.now() - time) / 60000)) + ' min ago' : 'update time unknown';
+    observations.push(reading.kind + ': ' + reading.value + ' ' + reading.unit + ' (reported ' + age + ')');
+  }
+  if ((owner.electrical || []).length)
+    observations.push('Electrical readings are observations, not proof of appliance operation. They may lag the switch state.');
+  else
+    observations.push('No attributable power/current/voltage measurement on this single-outlet device, or this is a multi-outlet strip.');
+  return observations;
+}
 /* Compact touch-first relationship editor. No nested scrolling or drag requirement. */
 function mapperChoices() {
   const sources = [];
@@ -323,7 +348,7 @@ function mapperChoices() {
       if (cap.domain !== 'switch') continue;
       for (const m of cap.members || []) {
         if (m.entity_id.startsWith('switch.'))
-          sources.push({id:m.entity_id, label:(m.name && m.name !== d.name ? m.name + ' · ' + d.name : d.name) + ' · ' + m.entity_id + ' · ' + d.manufacturer, owner:d.device_key, device:d});
+          sources.push({id:m.entity_id, label:(m.name && m.name !== d.name ? m.name + ' · ' + d.name : d.name) + ' · ' + m.entity_id + ' · ' + d.manufacturer, memberName:m.name, owner:d.device_key, device:d});
       }
     }
   }
@@ -362,8 +387,21 @@ function renderMapper() {
     const line = elem('div', undefined, 'mapped-pair');
     const displaySource = sources.find(x => x.id === source);
     const targetDevice = devices.find(d => d.device_key === target) || devices.find(d => d.name === target);
-    line.append(elem('span', (displaySource ? displaySource.label : 'Unavailable source') + ' → ' + (targetDevice ? targetDevice.name + ' · ' + targetDevice.manufacturer : target)));
-
+    const left = elem('div', undefined, 'mapped-description');
+    const sourceText = displaySource ? shortOutlet(displaySource) : 'Unresolved outlet';
+    const targetText = targetDevice ? targetDevice.name + ' (' + targetDevice.manufacturer + ')' : 'Previously saved appliance';
+    left.append(elem('strong', sourceText + ' → ' + targetText));
+    const detail = document.createElement('details');
+    detail.className = 'mapped-technical';
+    detail.append(elem('summary', 'Electrical observations & IDs'));
+    if (displaySource) {
+      for (const observation of sourceSnapshot(displaySource))
+        detail.append(elem('p', observation));
+    }
+    detail.append(elem('p', 'Switch entity: ' + source));
+    if (targetDevice) detail.append(elem('p', 'Appliance: ' + targetDevice.name + ' · ' + targetDevice.model));
+    left.append(detail);
+    line.append(left);
     const remove = elem('button', 'Remove');
     remove.type = 'button';
     remove.addEventListener('click', () => {
