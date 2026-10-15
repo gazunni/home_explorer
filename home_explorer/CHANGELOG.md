@@ -2,6 +2,12 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.13.5] — 2026-10-15
+- Show concise saved outlet-to-appliance relationship labels; move technical IDs into expandable details.
+- Prevent Remove controls from wrapping on tablets and phones.
+- Display read-only on/off observations and cautiously attributed voltage, current or power measurements on single-switch registry devices, including last-update timestamps.
+- Avoid assigning shared multi-outlet-strip sensor measurements to the wrong outlet.
+
 ## [0.13.4] — 2026-10-15
 - Resolve identical friendly-name devices by opaque unique device keys, not names.
 - Show actual TP-Link source manufacturer and LG ThinQ appliance independently.
