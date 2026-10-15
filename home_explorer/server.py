@@ -598,8 +598,34 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         del item['parent_id']
     result = list(visible.values())
     result.sort(key=lambda x: (x['virtual'], x['manufacturer'].casefold(), x['name'].casefold()))
+    observed = [x for x in result if not x['virtual']]
+    def roles(item):
+        refs = item['automation_links']
+        return [role for role in ('trigger', 'condition', 'action') if refs.get(role, 0) > 0]
+    for item in result:
+        item['automation_insight'] = {
+            'roles': roles(item),
+            'review': ('Multiple roles observed' if len(roles(item)) >= 2
+                       else 'Used as ' + roles(item)[0] if roles(item)
+                       else 'No exact reference found'),
+            'limits': 'Only exact structured references in accessible automation configurations are counted.',
+        }
+    referenced = [item for item in observed if roles(item)]
+    intelligence = {
+        'devices_examined': len(observed),
+        'devices_with_exact_references': len(referenced),
+        'devices_without_exact_references': len(observed) - len(referenced),
+        'devices_used_in_triggers': sum('trigger' in roles(item) for item in observed),
+        'devices_used_in_conditions': sum('condition' in roles(item) for item in observed),
+        'devices_used_in_actions': sum('action' in roles(item) for item in observed),
+        'devices_with_multiple_roles': sum(len(roles(item)) >= 2 for item in observed),
+        'configurations_checked': len(configurations or []),
+        'configurations_attempted': attempted,
+        'coverage_is_partial': attempted != len(configurations or []),
+        'scope_note': 'Exact structured references only. Templates, indirect scripts, dynamically addressed entities, and manufacturer-app automations are not resolved. A zero count does not establish that a device is unused.'
+    }
     return {
-        'version': '0.14.0', 'mode': 'read-only',
+        'version': '0.15.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
@@ -608,6 +634,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         'registry_review': sorted(registry_review, key=lambda x: x['name'].casefold())[:250],
         'automations': {**automation_counts(states), 'configurations_checked': len(configurations or []), 'lookup_attempted': attempted},
         'devices': result[:500],
+        'automation_intelligence': intelligence,
         'note': 'Potential control does not establish an executable command. Whether a feature requires a manufacturer app cannot be determined from registry data. Suggestions are examples only; device commands and current automations have not been verified.'
     }
 
