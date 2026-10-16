@@ -2,6 +2,10 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.21.1] — 2026-10-16
+- Restore consistent review-section card, heading alignment, and compact right-aligned candidate count for Automation Modernization Review.
+- Presentation-only fix; no changes to discovery, privacy, automation logic, or saved relationships.
+
 ## [0.21.0] — 2026-10-16
 - Add read-only Automation Modernization Review, a bounded device-specific shortlist built from sanitized exact action references and flow branching evidence.
 - Provide a Home Assistant investigation checklist without asserting genuine conflicts, duplicated intent or safe consolidation. No new HA reads or permissions, no changes to mapping storage.
