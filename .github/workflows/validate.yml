@@ -18,6 +18,7 @@ jobs:
       - run: python -m py_compile home_explorer/server.py home_explorer/tests/test_discovery.py
       - run: node --check home_explorer/web/app.js
       - run: node home_explorer/tests/test_dependency_ui.cjs
+      - run: node home_explorer/tests/test_opportunities.cjs
       - name: Check version consistency
         run: |
           python - <<'PY'
