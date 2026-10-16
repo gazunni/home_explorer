@@ -2,6 +2,10 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.22.1] — 2026-10-16
+- Fix section-selector startup ordering so element lookups are initialized before first use. Restores client-side scan startup and single-section display.
+- Add startup ordering regression coverage; no backend discovery, mapping, or permission changes.
+
 ## [0.22.0] — 2026-10-16
 - Replace eight stacked intelligence and equipment panels with a single section selector below Home Overview.
 - Show one existing panel at a time, selected by an accessible native dropdown; Find equipment selected by default.
