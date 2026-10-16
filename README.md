@@ -1,6 +1,6 @@
-# Home Explorer v0.21.1 — Explore Your Connected Home
+# Home Explorer v0.21.2 — Explore Your Connected Home
 
-## Version 0.21.1 — Automation Modernization Review
+## Version 0.21.2 — Automation Modernization Review
 
 A new read-only review section lists up to eight devices with multiple **distinct checked configurations** directly referencing them as action targets. It provides evidence and an explicit Home Assistant investigation step, with branch-presence context from previously sanitized device flow outlines. It never calls these conflicts or recommends automatic deletion. The Ecobee case study (`docs/case-studies/ecobee-modernization-2026-10-16.md`) grounds future work; this release does **not** infer automation purpose, timing, thresholds or runtime causality, and cannot perform a full Ecobee-style consolidation automatically.
 
@@ -76,7 +76,7 @@ Full instructions: [INSTALLATION.md](INSTALLATION.md).
 
 ## Version history
 
-Current version: **0.21.1** (October 16, 2026).
+Current version: **0.21.2** (October 16, 2026).
 
 See the [complete changelog](home_explorer/CHANGELOG.md) for release-by-release details. Release history is maintained there rather than appended to this README.
 
