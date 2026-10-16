@@ -1,4 +1,24 @@
 "use strict";
+/* v0.22.0: one section is visible at a time; retain all existing DOM nodes,
+   controls, state, and non-destructive read-only behavior. */
+const explorerSectionIds = Object.freeze([
+  'equipment-review','automation-review','overlap-review','opportunity-review',
+  'modernization-review','registry-review','dependency-review','map-editor'
+]);
+function showExplorerSection(id) {
+  const chosen = explorerSectionIds.includes(id) ? id : 'equipment-review';
+  for (const key of explorerSectionIds) {
+    const detail = get(key);
+    const section = detail.closest('section');
+    section.hidden = key !== chosen;
+    // Native details widgets remain the existing interface, open only the selected panel.
+    detail.open = key === chosen;
+  }
+  get('section-select').value = chosen;
+}
+get('section-select').addEventListener('change', event => showExplorerSection(event.target.value));
+showExplorerSection('equipment-review');
+
 const get = id => document.getElementById(id);
 let devices = [];
 let mappings = {};
