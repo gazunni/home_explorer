@@ -313,7 +313,7 @@ function opportunityFindings(items, map) {
       type:'Ambiguous saved relationship', priority:'Review', evidence:'Confirmed mapping; ambiguous registry match',
       label:safeLabel(target) + ' — confirm intended registration',
       detail:sameName.length + ' visible registrations share this appliance name. The physical outlet mapping remains saved, but device-specific automation evidence cannot be assigned safely.',
-      next:'Compare the registrations in Home Assistant before deciding which integration is useful. Do not delete based on name alone.'
+      next:'Compare the registrations in Home Assistant before deciding which integration is useful. Do not remove anything based on name alone.'
     });
     const matched = exact || (sameName.length === 1 ? sameName[0] : null);
     if (matched && matched.power_dependency &&
