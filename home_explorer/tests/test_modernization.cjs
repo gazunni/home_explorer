@@ -30,7 +30,7 @@ const html=fs.readFileSync('home_explorer/web/index.html','utf8');
 const pStart=app.indexOf('function modernizationPageSlice(');
 const pEnd=app.indexOf('function renderModernizationReview()',pStart);
 assert.ok(pStart>=0 && pEnd>pStart);
-vm.runInContext('const modernizationPageSize=5;\n'+app.slice(pStart,pEnd),ctx);
+vm.runInContext(app.slice(pStart,pEnd),ctx);
 const twenty=Array.from({length:20},(_,i)=>i);
 const page=ctx.modernizationPageSlice(twenty,0);
 assert.equal(page.items.length,5); assert.equal(page.pages,4);
