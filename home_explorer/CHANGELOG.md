@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.21.2] — 2026-10-16
+- Give Find equipment a matching section header and collapsible device browser while retaining search and view filters.
+- Keep the matching equipment count visible in the section header. Default expanded for continuity.
+- UI only; no change to Home Assistant permissions, discovery, or saved relationships.
+
 ## [0.21.1] — 2026-10-16
 - Restore consistent review-section card, heading alignment, and compact right-aligned candidate count for Automation Modernization Review.
 - Presentation-only fix; no changes to discovery, privacy, automation logic, or saved relationships.
