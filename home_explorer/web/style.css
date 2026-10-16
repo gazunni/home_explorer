@@ -215,3 +215,12 @@
 .equipment-review>details>summary::-webkit-details-marker{display:none}
 .equipment-review>details>summary>span{font-size:12px;font-weight:500;color:#a7d6ca;text-align:right;white-space:nowrap}
 .equipment-review .toolbar{margin-top:16px}
+
+/* v0.22.0 one-section navigation: consistent selector and a single detail surface. */
+.section-selector{display:flex;align-items:center;gap:12px;margin:16px 0 8px;flex-wrap:wrap}
+.section-selector label{color:#b6e3d8;font-size:14px;font-weight:600}
+.section-selector select{flex:1;min-width:230px;max-width:100%;background:#14263a;color:#e2eff8;border:1px solid #426178;border-radius:10px;padding:12px;font:inherit}
+.section-detail>section[hidden]{display:none!important}
+.section-detail>section{margin-top:8px;margin-bottom:14px}
+.section-detail>section>details[open]>summary{margin-bottom:14px}
+@media(max-width:650px){.section-selector{display:block}.section-selector label{display:block;margin-bottom:8px}.section-selector select{width:100%}}
