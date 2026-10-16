@@ -1,4 +1,9 @@
-# Home Explorer v0.20.0 — Explore Your Connected Home
+# Home Explorer v0.21.0 — Explore Your Connected Home
+
+## Version 0.21.0 — Automation Modernization Review
+
+A new read-only review section lists up to eight devices with multiple **distinct checked configurations** directly referencing them as action targets. It provides evidence and an explicit Home Assistant investigation step, with branch-presence context from previously sanitized device flow outlines. It never calls these conflicts or recommends automatic deletion. The Ecobee case study (`docs/case-studies/ecobee-modernization-2026-10-16.md`) grounds future work; this release does **not** infer automation purpose, timing, thresholds or runtime causality, and cannot perform a full Ecobee-style consolidation automatically.
+
 
 **Home Explorer** is an application designed for read-only device and capability explorer for Home Assistant, running locally through authenticated Home Assistant Ingress. It helps you understand what Home Assistant can see without issuing commands or modifying devices and automations.
 
