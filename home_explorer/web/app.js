@@ -256,6 +256,7 @@ async function refreshDevices() {
     automationIntelligence = data.automation_intelligence || {};
     renderAutomationReview();
     renderOverlapReview();
+    renderOpportunities();
     try {
       const mapResponse = await fetch(new URL('api/relationships', root), {credentials:'same-origin',cache:'no-store'});
       mappings = mapResponse.ok ? await mapResponse.json() : {};
@@ -296,10 +297,65 @@ async function refreshDevices() {
 let automationIntelligence = {};
 
 /* Phase 5: review distinct configurations targeting a device, not conflicts. */
+
+/* Evidence-backed investigation prompts, with bounded and non-destructive logic.
+   Do not infer that similar names imply the same physical device. */
+function opportunityFindings(items, map) {
+  const findings = [];
+  const mapped = Object.entries(map || {});
+  const sourceIds = new Set();
+  for (const [target, source] of mapped) {
+    if (typeof source !== 'string') continue;
+    sourceIds.add(source);
+    const matches = items.filter(d => !d.virtual && (d.device_key === target || d.name === target));
+    if (matches.length > 1 && !matches.some(d => d.device_key === target)) {
+      findings.push({type:'Ambiguous saved relationship', label:'Saved appliance label needs review',
+        detail:'Several registrations match this saved appliance label. Retain the confirmed physical link, but verify the intended registration before interpreting its automation roles.'});
+    }
+  }
+  if (items.some(d => d.action_overlap && d.action_overlap.potential_overlap && !d.virtual)) {
+    const count = items.filter(d => !d.virtual && d.action_overlap && d.action_overlap.potential_overlap).length;
+    findings.push({type:'Automation overlap review',label:count + ' devices warrant action-reference review',
+      detail:'Each is directly referenced by at least two checked configurations. This does not establish competing instructions, execution or conflict.'});
+  }
+  const uncertain = mapped.filter(([target]) => {
+    const targetDevice = items.find(d => d.device_key === target) ||
+      (items.filter(d => d.name === target).length === 1 ? items.find(d => d.name === target) : null);
+    return !!targetDevice && !!targetDevice.power_dependency &&
+      targetDevice.power_dependency.supply_state === 'Not available';
+  });
+  if (uncertain.length) findings.push({type:'Power evidence review',
+    label:uncertain.length + ' mapped appliances have unknown outlet state',
+    detail:'Check the source outlet and its last Home Assistant observation before drawing conclusions about power delivery or operation.'});
+  if (automationIntelligence.coverage_is_partial) findings.push({type:'Coverage review',
+    label:'Automation configuration retrieval is incomplete',
+    detail:'Some automations could not be inspected, so missing references and overlap counts are not comprehensive.'});
+  return findings.slice(0, 20);
+}
+function renderOpportunities() {
+  const host = get('opportunity-items');
+  if (!host) return;
+  host.replaceChildren();
+  const findings = opportunityFindings(devices, mappings);
+  get('opportunity-count').textContent = findings.length + ' review topics';
+  if (!findings.length) {
+    host.append(elem('p', 'No evidence-backed review topics were found by the current limited checks. This does not mean the home has no opportunities.', 'hint'));
+    return;
+  }
+  for (const finding of findings) {
+    const row = elem('div', undefined, 'opportunity-entry');
+    row.append(elem('strong', finding.label));
+    row.append(elem('p', finding.detail));
+    host.append(row);
+  }
+  host.append(elem('p', 'Suggestions use current sanitized observations, never issue commands, and are not recommendations to delete registrations or change automations.', 'automation-caveat'));
+}
+
 function renderOverlapReview() {
   const host = get('overlap-items');
   if (!host) return;
   host.replaceChildren();
+  host.append(elem('p', 'Review candidates only. Commands, timing, branches, execution and contradictions are not established.', 'automation-caveat'));
   const overlaps = devices.filter(d => !d.virtual && d.action_overlap &&
     d.action_overlap.potential_overlap).sort((a,b) =>
       b.action_overlap.configuration_count - a.action_overlap.configuration_count || alpha(a.name,b.name));
@@ -312,7 +368,6 @@ function renderOverlapReview() {
     line.append(elem('strong', device.name + ' · ' + device.manufacturer));
     line.append(elem('p', device.action_overlap.configuration_count +
       ' distinct checked configurations reference this device as an action target.', 'row-meta'));
-    line.append(elem('p', 'Review opportunity only: commands, direction, schedule, branch conditions, actual execution and contradictions are not established.', 'automation-caveat'));
     host.append(line);
   }
   if (overlaps.length > 60) host.append(elem('p', 'Additional candidate devices omitted from this bounded review.', 'automation-caveat'));
@@ -623,6 +678,7 @@ function renderMapper() {
   const entries = Object.entries(mappings);
   get('map-count').textContent = entries.length + ' saved';
   renderDependencies();
+  renderOpportunities();
   for (const [target, source] of entries) {
     const line = elem('div', undefined, 'mapped-pair');
     const displaySource = sources.find(x => x.id === source);
