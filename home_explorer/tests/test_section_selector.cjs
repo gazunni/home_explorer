@@ -15,4 +15,8 @@ assert.ok(html.includes('id="devices"'));
 assert.ok(js.includes("showExplorerSection('equipment-review')"));
 assert.ok(js.includes("section.hidden = key !== chosen"));
 assert.ok(js.includes("detail.open = key === chosen"));
+const getDeclaration=js.indexOf("const get = id => document.getElementById(id);");
+const firstUse=js.indexOf("get('section-select').addEventListener");
+assert.ok(getDeclaration >= 0 && getDeclaration < firstUse,'element lookup must initialize before section setup');
+assert.equal((js.match(/const get = id => document.getElementById\(id\);/g)||[]).length,1);
 console.log('Section navigator regression tests passed');
