@@ -303,33 +303,44 @@ let automationIntelligence = {};
 function opportunityFindings(items, map) {
   const findings = [];
   const mapped = Object.entries(map || {});
-  const sourceIds = new Set();
+  const safeLabel = value => typeof value === 'string' &&
+    /^[A-Za-z0-9][A-Za-z0-9 _().-]{0,89}$/.test(value) ? value : 'Saved appliance';
   for (const [target, source] of mapped) {
     if (typeof source !== 'string') continue;
-    sourceIds.add(source);
-    const matches = items.filter(d => !d.virtual && (d.device_key === target || d.name === target));
-    if (matches.length > 1 && !matches.some(d => d.device_key === target)) {
-      findings.push({type:'Ambiguous saved relationship', label:'Saved appliance label needs review',
-        detail:'Several registrations match this saved appliance label. Retain the confirmed physical link, but verify the intended registration before interpreting its automation roles.'});
-    }
+    const exact = items.find(d => !d.virtual && d.device_key === target);
+    const sameName = exact ? [] : items.filter(d => !d.virtual && d.name === target);
+    if (!exact && sameName.length > 1) findings.push({
+      type:'Ambiguous saved relationship', priority:'Review', evidence:'Confirmed mapping; ambiguous registry match',
+      label:safeLabel(target) + ' — confirm intended registration',
+      detail:sameName.length + ' visible registrations share this appliance name. The physical outlet mapping remains saved, but device-specific automation evidence cannot be assigned safely.',
+      next:'Compare the registrations in Home Assistant before deciding which integration is useful. Do not remove anything based on name alone.'
+    });
+    const matched = exact || (sameName.length === 1 ? sameName[0] : null);
+    if (matched && matched.power_dependency &&
+        matched.power_dependency.supply_state === 'Not available') findings.push({
+      type:'Power evidence review', priority:'Review', evidence:'Saved outlet mapping; current supply status unavailable',
+      label:matched.name + ' — outlet state not confirmed',
+      detail:'The saved upstream power relationship is known, but the latest outlet state is unavailable. This does not prove an outage or appliance fault.',
+      next:'Inspect the mapped outlet and the age of its electrical readings in Power Intelligence.'
+    });
   }
-  if (items.some(d => d.action_overlap && d.action_overlap.potential_overlap && !d.virtual)) {
-    const count = items.filter(d => !d.virtual && d.action_overlap && d.action_overlap.potential_overlap).length;
-    findings.push({type:'Automation overlap review',label:count + ' devices warrant action-reference review',
-      detail:'Each is directly referenced by at least two checked configurations. This does not establish competing instructions, execution or conflict.'});
-  }
-  const uncertain = mapped.filter(([target]) => {
-    const targetDevice = items.find(d => d.device_key === target) ||
-      (items.filter(d => d.name === target).length === 1 ? items.find(d => d.name === target) : null);
-    return !!targetDevice && !!targetDevice.power_dependency &&
-      targetDevice.power_dependency.supply_state === 'Not available';
+  const overlap = items.filter(d => !d.virtual && d.action_overlap &&
+    d.action_overlap.potential_overlap).sort((a,b) =>
+      b.action_overlap.configuration_count - a.action_overlap.configuration_count ||
+      alpha(a.name,b.name));
+  // Surface the highest-count candidates specifically, without repeating the full overlap list.
+  for (const d of overlap.slice(0,3)) findings.push({
+    type:'Automation target review', priority:'Review', evidence:'Exact structured action references',
+    label:d.name + ' — multiple automation targets',
+    detail:d.action_overlap.configuration_count + ' checked configurations directly reference this device as an action target. Different operations or actual conflicts have not been established.',
+    next:'Use Potential Automation Overlaps and Automation Intelligence to review its trigger/condition/action structure.'
   });
-  if (uncertain.length) findings.push({type:'Power evidence review',
-    label:uncertain.length + ' mapped appliances have unknown outlet state',
-    detail:'Check the source outlet and its last Home Assistant observation before drawing conclusions about power delivery or operation.'});
-  if (automationIntelligence.coverage_is_partial) findings.push({type:'Coverage review',
-    label:'Automation configuration retrieval is incomplete',
-    detail:'Some automations could not be inspected, so missing references and overlap counts are not comprehensive.'});
+  if (automationIntelligence.coverage_is_partial) findings.push({
+    type:'Coverage review',priority:'Review',evidence:'Incomplete automation configuration retrieval',
+    label:'Automation analysis — incomplete coverage',
+    detail:'Not every eligible configuration was retrieved. A missing reference does not establish that an automation or dependency is absent.',
+    next:'Refresh the scan and inspect coverage before relying on the results.'
+  });
   return findings.slice(0, 20);
 }
 function renderOpportunities() {
@@ -337,18 +348,20 @@ function renderOpportunities() {
   if (!host) return;
   host.replaceChildren();
   const findings = opportunityFindings(devices, mappings);
-  get('opportunity-count').textContent = findings.length + ' review topics';
+  get('opportunity-count').textContent = findings.length + ' specific findings';
   if (!findings.length) {
-    host.append(elem('p', 'No evidence-backed review topics were found by the current limited checks. This does not mean the home has no opportunities.', 'hint'));
+    host.append(elem('p', 'No specific evidence-backed findings from current checks. This does not establish that no issues exist.', 'hint'));
     return;
   }
   for (const finding of findings) {
     const row = elem('div', undefined, 'opportunity-entry');
     row.append(elem('strong', finding.label));
+    row.append(elem('p', 'Evidence: ' + finding.evidence, 'opportunity-evidence'));
     row.append(elem('p', finding.detail));
+    row.append(elem('p', 'Check: ' + finding.next, 'opportunity-next'));
     host.append(row);
   }
-  host.append(elem('p', 'Suggestions use current sanitized observations, never issue commands, and are not recommendations to delete registrations or change automations.', 'automation-caveat'));
+  host.append(elem('p', 'All findings are review suggestions, not verified faults. No automatic edits, deletions or commands are performed.', 'automation-caveat'));
 }
 
 function renderOverlapReview() {

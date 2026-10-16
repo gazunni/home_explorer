@@ -16,8 +16,10 @@ const items = [
 ];
 let findings = ctx.opportunityFindings(items,{'TV':'switch.plug','one':'switch.other'});
 assert.ok(findings.some(f => f.type === 'Ambiguous saved relationship'));
-assert.ok(findings.some(f => f.type === 'Automation overlap review'));
+assert.ok(findings.some(f => f.type === 'Automation target review'));
+assert.ok(findings.some(f => f.label.includes('TV — confirm intended registration')));
 assert.ok(findings.some(f => f.type === 'Power evidence review'));
+assert.ok(findings.every(f => f.next && f.evidence && f.label));
 assert.ok(!JSON.stringify(findings).toLowerCase().includes('delete'));
 ctx.automationIntelligence.coverage_is_partial = true;
 findings = ctx.opportunityFindings([], {});
