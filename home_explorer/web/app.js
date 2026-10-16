@@ -235,6 +235,7 @@ function render() {
   }
   get('devices').replaceChildren(fragment);
   get('count').textContent = matches.length + ' shown';
+  get('equipment-count').textContent = matches.length + ' shown';
   if (!matches.length) get('devices').append(elem('p', 'No matching entries in this view.', 'empty'));
 }
 get('search').addEventListener('input', render);
