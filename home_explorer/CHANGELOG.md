@@ -5,7 +5,7 @@ All notable changes to Home Explorer are documented here. Home Assistant device 
 ## [0.21.0] — 2026-10-16
 - Add read-only Automation Modernization Review, a bounded device-specific shortlist built from sanitized exact action references and flow branching evidence.
 - Provide a Home Assistant investigation checklist without asserting genuine conflicts, duplicated intent or safe consolidation. No new HA reads or permissions, no changes to mapping storage.
-- Document the Ecobee modernization case study as a real-world reference, and add synthetic regression tests for modernization candidates and UI coverage.
+- Document the Ecobee modernization case study as a real-world reference, and add synthetic regression tests for modernization candidates. The homeowner must separately verify the new review section on HA Green.
 
 ## [0.20.0] — 2026-10-16
 - Stabilization release: declare amd64 alongside aarch64 with architecture-specific CI builds; verify an amd64 container starts and restricts ingress.
