@@ -1,8 +1,8 @@
-# Home Explorer v0.16.1 — Explore Your Connected Home
+# Home Explorer v0.17.0 — Explore Your Connected Home
 
 **Home Explorer** is an application designed for read-only device and capability explorer for Home Assistant, running locally through authenticated Home Assistant Ingress. It helps you understand what Home Assistant can see without issuing commands or modifying devices and automations.
 
-## Current features (v0.16.1)
+## Current features (v0.17.0)
 
 - Relationship selections use unique opaque device keys, distinguishing same-name TP-Link and LG ThinQ registrations. Existing name-keyed relationships remain readable for unambiguous device names.
 
@@ -31,9 +31,13 @@
 - Supervisor access remains server-side and has broader Home Assistant capabilities than the application's deliberately limited operations. A strict application-level read-query allowlist rejects write operations in the websocket request builder; it does not change the token's underlying permissions. Ingress access must still be protected by Home Assistant authentication. An admin-only panel setting should not be treated as a separately verified per-user access check. The read-only designation describes application behavior, not a token-level read-only permission. Entity identifiers and filtered state values are shown only to authenticated users of the local application.
 - Automation definitions are inspected only in memory for exact entity/device references, without exposing raw configurations; suggestions are not verified automations.
 
-## Dependency Intelligence (v0.16.1)
+## Dependency Intelligence (v0.17.0)
 
 The Phase 5 first increment correlates only homeowner-confirmed local power relationships with sanitized current outlet state and exact device-level automation roles. It does not infer wiring, targeting of a specific outlet from a device-level reference, causation, or appliance operation. More advanced conflict and opportunity analysis remains future work.
+
+## Phase 5: potential automation overlaps (v0.17.0)
+
+Shows devices exactly referenced as action targets in two or more separately fetched automation configurations. Counts are per configuration rather than repeated steps. These are investigation candidates, **not proven contradictory commands, schedules or actual execution**. Read-only and fully sanitized; no raw automation details are sent to the browser.
 
 ## Installation and updates
 
@@ -51,7 +55,7 @@ Full instructions: [INSTALLATION.md](INSTALLATION.md).
 
 ## Version history
 
-Current version: **0.16.1** (October 15, 2026).
+Current version: **0.17.0** (October 15, 2026).
 
 See the [complete changelog](home_explorer/CHANGELOG.md) for release-by-release details. Release history is maintained there rather than appended to this README.
 

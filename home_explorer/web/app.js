@@ -255,6 +255,7 @@ async function refreshDevices() {
     devices = data.devices;
     automationIntelligence = data.automation_intelligence || {};
     renderAutomationReview();
+    renderOverlapReview();
     try {
       const mapResponse = await fetch(new URL('api/relationships', root), {credentials:'same-origin',cache:'no-store'});
       mappings = mapResponse.ok ? await mapResponse.json() : {};
@@ -293,6 +294,31 @@ async function refreshDevices() {
   finally {get('scan').disabled = false; scanInProgress = false;}
 }
 let automationIntelligence = {};
+
+/* Phase 5: review distinct configurations targeting a device, not conflicts. */
+function renderOverlapReview() {
+  const host = get('overlap-items');
+  if (!host) return;
+  host.replaceChildren();
+  const overlaps = devices.filter(d => !d.virtual && d.action_overlap &&
+    d.action_overlap.potential_overlap).sort((a,b) =>
+      b.action_overlap.configuration_count - a.action_overlap.configuration_count || alpha(a.name,b.name));
+  get('overlap-count').textContent = overlaps.length + ' devices for review';
+  if (!overlaps.length) {
+    host.append(elem('p', 'No devices were found as direct action targets in two or more checked configurations. Indirect actions remain outside coverage.', 'automation-caveat'));
+  }
+  for (const device of overlaps.slice(0, 60)) {
+    const line = elem('div', undefined, 'overlap-entry');
+    line.append(elem('strong', device.name + ' · ' + device.manufacturer));
+    line.append(elem('p', device.action_overlap.configuration_count +
+      ' distinct checked configurations reference this device as an action target.', 'row-meta'));
+    line.append(elem('p', 'Review opportunity only: commands, direction, schedule, branch conditions, actual execution and contradictions are not established.', 'automation-caveat'));
+    host.append(line);
+  }
+  if (overlaps.length > 60) host.append(elem('p', 'Additional candidate devices omitted from this bounded review.', 'automation-caveat'));
+  host.append(elem('p', 'Only exact structured references within retrieved automation configurations are counted. Multiple action targets do not establish a conflict.', 'automation-caveat'));
+}
+
 function renderAutomationReview() {
   const i = automationIntelligence;
   const metrics = get('automation-metrics');

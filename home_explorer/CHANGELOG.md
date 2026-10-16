@@ -2,7 +2,7 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
-## [0.16.1] — 2026-10-15
+## [0.17.0] — 2026-10-15
 - Begin Phase 5 with compact, read-only Dependency Intelligence over existing homeowner-confirmed power mappings.
 - Relate confirmed physical links to reported outlet state, available electrical observations, and device-level automation role summaries while explicitly stating evidence limits.
 - No new Home Assistant queries or permissions; preserve private /data mappings and existing Power Intelligence.

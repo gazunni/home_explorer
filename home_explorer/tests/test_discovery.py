@@ -370,6 +370,36 @@ class ScanTests(unittest.TestCase):
         self.assertFalse(intel['coverage_is_partial'])
         self.assertNotIn('secret_rule',str(result))
 
+
+    def test_action_overlap_counts_distinct_configurations_not_steps(self):
+        from server import automation_action_overlap
+        entities = {'switch.fan':'fan'}
+        configurations = [
+            {'actions':[{'target':{'entity_id':'switch.fan'}},
+                        {'target':{'entity_id':'switch.fan'}}]},
+            {'actions':[{'target':{'entity_id':'switch.fan'}}]},
+            {'actions':[{'data':{'entity_id':'switch.fan'}}]},
+        ]
+        counts = automation_action_overlap(configurations, entities)
+        # Two direct configurations; arbitrary data dictionary does not count.
+        self.assertEqual(counts.get('fan'), 2)
+
+    def test_action_overlap_never_claims_conflict_or_leaks_action_content(self):
+        config = [{'alias':'ALIAS_ONLY_DO_NOT_SHOW','actions':[{'action':'switch.turn_off',
+                'target':{'entity_id':'switch.fan'},'data':{'secret':'DO_NOT_EXPORT'}}]},
+                  {'alias':'ANOTHER_ALIAS_DO_NOT_SHOW','actions':[{'action':'switch.turn_on',
+                'target':{'entity_id':'switch.fan'}}]}]
+        result = scan([{'id':'fan','name':'Fan'}],
+            [{'device_id':'fan','entity_id':'switch.fan'}], configurations=config, attempted=2)
+        summary = result['devices'][0]['action_overlap']
+        self.assertEqual(summary['configuration_count'], 2)
+        self.assertTrue(summary['potential_overlap'])
+        self.assertNotIn('ALIAS_ONLY_DO_NOT_SHOW', str(result))
+        self.assertNotIn('ANOTHER_ALIAS_DO_NOT_SHOW', str(result))
+        self.assertNotIn('DO_NOT_EXPORT', str(result))
+        self.assertNotIn('switch.turn_off', str(result))
+        self.assertNotIn('conflict', str(summary))
+
     def test_flow_outline_keeps_phases_from_same_configuration(self):
         devices=[{'id':'temp','name':'Temperature sensor'},{'id':'plug','name':'Pump plug'}]
         entities=[{'device_id':'temp','entity_id':'sensor.ambient_temperature'},
