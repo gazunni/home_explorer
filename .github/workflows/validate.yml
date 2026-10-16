@@ -19,6 +19,7 @@ jobs:
       - run: node --check home_explorer/web/app.js
       - run: node home_explorer/tests/test_dependency_ui.cjs
       - run: node home_explorer/tests/test_opportunities.cjs
+      - run: node home_explorer/tests/test_modernization.cjs
       - name: Check version consistency
         run: |
           python - <<'PY'
