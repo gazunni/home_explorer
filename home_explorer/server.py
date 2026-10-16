@@ -285,6 +285,24 @@ def automation_links(configurations, device_entities):
             links[device_id][relation] += 1
     return links
 
+def automation_action_overlap(configurations, device_entities):
+    """Count DISTINCT fetched configurations directly referencing device actions.
+
+    Not a conflict detector: no directions, schedules, execution or mutual
+    exclusivity inferred. Shares the exact-reference semantics of automation_links.
+    """
+    counts = Counter()
+    for configuration in (configurations or [])[:100]:
+        if not isinstance(configuration, dict):
+            continue
+        targets = {device_id for device_id, role in
+                   referenced_devices(configuration, device_entities)
+                   if role == 'action'}
+        for device_id in targets:
+            counts[device_id] += 1
+    return dict(counts)
+
+
 def automation_explanations(configurations, device_entities):
     """Privacy-limited explanation of exact structured automation references.
 
@@ -631,6 +649,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
     associations = automation_links(configurations, entity_devices)
     explanations = automation_explanations(configurations, entity_devices)
     flow_outlines = automation_flow_summaries(configurations, entity_devices)
+    action_overlap = automation_action_overlap(configurations, entity_devices)
     # Raw registry keys remain internal; only one-way opaque lookup keys reach the browser.
     lookup = {d['id']: d for d in devices if isinstance(d, dict) and isinstance(d.get('id'), str)}
     visible = {}
@@ -771,6 +790,8 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
             'automation_links': dict(associations.get(device_id, {'trigger':0,'condition':0,'action':0})),
             'automation_explanations': explanations.get(device_id, {}),
             'automation_flows': flow_outlines.get(device_id, []),
+            'action_overlap': {'configuration_count': action_overlap.get(device_id, 0),
+                               'potential_overlap': action_overlap.get(device_id, 0) >= 2},
             'observable_categories': sum(1 for k in counts if k in OBSERVATION_DOMAINS),
             'potential_control_categories': sum(1 for k in counts if k in POTENTIAL_CONTROL_DOMAINS),
             'kind': 'Energy-monitor detection' if is_virtual else 'Registered device',
@@ -807,13 +828,14 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         'devices_used_in_conditions': sum('condition' in roles(item) for item in observed),
         'devices_used_in_actions': sum('action' in roles(item) for item in observed),
         'devices_with_multiple_roles': sum(len(roles(item)) >= 2 for item in observed),
+        'devices_with_action_overlap': sum(item['action_overlap']['potential_overlap'] for item in observed),
         'configurations_checked': len(configurations or []),
         'configurations_attempted': attempted,
         'coverage_is_partial': attempted != len(configurations or []),
         'scope_note': 'Exact structured references only. Templates, indirect scripts, dynamically addressed entities, and manufacturer-app automations are not resolved. A zero count does not establish that a device is unused.'
     }
     return {
-        'version': '0.16.1', 'mode': 'read-only',
+        'version': '0.17.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
