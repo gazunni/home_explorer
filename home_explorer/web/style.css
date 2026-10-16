@@ -208,3 +208,10 @@
 .modernization-review>details>summary::-webkit-details-marker{display:none}
 .modernization-review>details>summary>span{font-size:12px;font-weight:500;color:#a7d6ca;text-align:right;white-space:nowrap}
 .modernization-review p{font-size:13px;line-height:1.5;color:#afc0cf}
+
+/* v0.21.2: equipment browser is one collapsible, consistently styled section. */
+.equipment-review{border:1px solid #3a5970;border-radius:14px;background:#101e2e;padding:14px 19px;margin:16px 0}
+.equipment-review>details>summary{display:flex;justify-content:space-between;align-items:center;gap:12px;cursor:pointer;color:#a7e0d4;list-style:none}
+.equipment-review>details>summary::-webkit-details-marker{display:none}
+.equipment-review>details>summary>span{font-size:12px;font-weight:500;color:#a7d6ca;text-align:right;white-space:nowrap}
+.equipment-review .toolbar{margin-top:16px}
