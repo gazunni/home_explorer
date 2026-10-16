@@ -1,4 +1,5 @@
 "use strict";
+const get = id => document.getElementById(id);
 /* v0.22.0: one section is visible at a time; retain all existing DOM nodes,
    controls, state, and non-destructive read-only behavior. */
 const explorerSectionIds = Object.freeze([
@@ -19,7 +20,6 @@ function showExplorerSection(id) {
 get('section-select').addEventListener('change', event => showExplorerSection(event.target.value));
 showExplorerSection('equipment-review');
 
-const get = id => document.getElementById(id);
 let devices = [];
 let mappings = {};
 let selectedSource = '';
