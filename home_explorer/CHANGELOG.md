@@ -2,6 +2,12 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.22.0] — 2026-10-16
+- Replace eight stacked intelligence and equipment panels with a single section selector below Home Overview.
+- Show one existing panel at a time, selected by an accessible native dropdown; Find equipment selected by default.
+- Keep all existing section DOM nodes, controls, result renderers, mapped relationships and scan data, with no backend changes beyond version metadata.
+- Add synthetic layout regression checks; no new HA reads, writes, or telemetry.
+
 ## [0.21.2] — 2026-10-16
 - Give Find equipment a matching section header and collapsible device browser while retaining search and view filters.
 - Keep the matching equipment count visible in the section header. Default expanded for continuity.
