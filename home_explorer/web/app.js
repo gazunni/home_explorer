@@ -98,6 +98,13 @@ function deviceHealth(d) {
   return {label:'Reporting',kind:'good',detail:'All ' + diag.available + ' assessed entity readings are reporting. This does not confirm physical operation or device health.'};
 }
 
+const equipmentPageSize = 8;
+let equipmentPage = 0;
+function paginateEquipment(items,page) {
+  const pages = Math.max(1,Math.ceil(items.length/equipmentPageSize));
+  const index = Math.max(0,Math.min(page,pages-1));
+  return {index,pages,items:items.slice(index*equipmentPageSize,(index+1)*equipmentPageSize)};
+}
 function render() {
   const term = get('search').value.trim().toLocaleLowerCase();
   const kind = get('kind').value;
@@ -107,7 +114,9 @@ function render() {
      ...d.capabilities.flatMap(c => [c.type, ...(c.members || []).flatMap(m => [m.name, m.entity_id])])].join(' ').toLocaleLowerCase().includes(term));
   matches.sort((a,b) => alpha(a.d.name,b.d.name));
   const fragment = document.createDocumentFragment();
-  for (const {d, index} of matches) {
+  const page = paginateEquipment(matches,equipmentPage);
+  equipmentPage = page.index;
+  for (const {d, index} of page.items) {
     const row = elem('details', undefined, 'device-row');
     row.open = openRows.has(index);
     row.addEventListener('toggle', () => {
@@ -257,9 +266,16 @@ function render() {
   get('count').textContent = matches.length + ' shown';
   get('equipment-count').textContent = matches.length + ' shown';
   if (!matches.length) get('devices').append(elem('p', 'No matching entries in this view.', 'empty'));
+  const start = matches.length ? page.index * equipmentPageSize + 1 : 0;
+  const end = matches.length ? start + page.items.length - 1 : 0;
+  get('equipment-page-status').textContent = start + '–' + end + ' of ' + matches.length + ' · Page ' + (page.index+1) + ' of ' + page.pages;
+  get('equipment-prev').disabled = page.index === 0;
+  get('equipment-next').disabled = page.index === page.pages-1;
 }
-get('search').addEventListener('input', render);
-get('kind').addEventListener('change', render);
+get('search').addEventListener('input', () => { equipmentPage=0; render(); });
+get('kind').addEventListener('change', () => { equipmentPage=0; render(); });
+get('equipment-prev').addEventListener('click',()=>{equipmentPage--;render();});
+get('equipment-next').addEventListener('click',()=>{equipmentPage++;render();});
 async function refreshDevices() {
   if (scanInProgress) return;
   scanInProgress = true;

@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.22.3] — 2026-10-16
+- Paginate Find equipment search/filter results eight per page with Previous/Next and accurate filtered range.
+- Reset to first page when a search or device-kind filter changes, clamp page when scan result counts change, and preserve device expansion while browsing pages.
+- No changes to backend permissions, discovery, privacy filtering, or homeowner-confirmed mappings.
+
 ## [0.22.2] — 2026-10-16
 - Paginate Automation Modernization Review at five candidates per page with previous/next controls, visible range and total.
 - Include all review candidates rather than silently truncating after eight. Selection bounds clamp after data refresh; no changes to scanning or analysis.

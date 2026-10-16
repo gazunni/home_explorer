@@ -225,7 +225,7 @@
 .section-detail>section>details[open]>summary{margin-bottom:14px}
 @media(max-width:650px){.section-selector{display:block}.section-selector label{display:block;margin-bottom:8px}.section-selector select{width:100%}}
 
-/* v0.22.2: five-per-page review controls, touch friendly on iPad. */
+/* v0.22.3: five-per-page review controls, touch friendly on iPad. */
 .modernization-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid #344e62;padding-top:14px;margin-top:12px}
 .modernization-pagination span{color:#abc9d2;font-size:13px;white-space:nowrap}
 .modernization-pagination button{border:1px solid #507188;border-radius:8px;background:#193246;color:#d9eceb;padding:10px 14px;min-height:40px;cursor:pointer;font:inherit}

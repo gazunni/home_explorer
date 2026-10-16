@@ -20,6 +20,7 @@ jobs:
       - run: node home_explorer/tests/test_dependency_ui.cjs
       - run: node home_explorer/tests/test_opportunities.cjs
       - run: node home_explorer/tests/test_modernization.cjs
+      - run: node home_explorer/tests/test_equipment_pagination.cjs
       - run: node home_explorer/tests/test_section_selector.cjs
       - name: Check version consistency
         run: |
