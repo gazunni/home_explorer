@@ -385,16 +385,17 @@ class ScanTests(unittest.TestCase):
         self.assertEqual(counts.get('fan'), 2)
 
     def test_action_overlap_never_claims_conflict_or_leaks_action_content(self):
-        config = [{'alias':'private','actions':[{'action':'switch.turn_off',
+        config = [{'alias':'ALIAS_ONLY_DO_NOT_SHOW','actions':[{'action':'switch.turn_off',
                 'target':{'entity_id':'switch.fan'},'data':{'secret':'DO_NOT_EXPORT'}}]},
-                  {'alias':'another private','actions':[{'action':'switch.turn_on',
+                  {'alias':'ANOTHER_ALIAS_DO_NOT_SHOW','actions':[{'action':'switch.turn_on',
                 'target':{'entity_id':'switch.fan'}}]}]
         result = scan([{'id':'fan','name':'Fan'}],
             [{'device_id':'fan','entity_id':'switch.fan'}], configurations=config, attempted=2)
         summary = result['devices'][0]['action_overlap']
         self.assertEqual(summary['configuration_count'], 2)
         self.assertTrue(summary['potential_overlap'])
-        self.assertNotIn('private', str(result))
+        self.assertNotIn('ALIAS_ONLY_DO_NOT_SHOW', str(result))
+        self.assertNotIn('ANOTHER_ALIAS_DO_NOT_SHOW', str(result))
         self.assertNotIn('DO_NOT_EXPORT', str(result))
         self.assertNotIn('switch.turn_off', str(result))
         self.assertNotIn('conflict', str(summary))
