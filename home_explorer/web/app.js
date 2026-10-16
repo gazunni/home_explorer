@@ -256,6 +256,7 @@ async function refreshDevices() {
     automationIntelligence = data.automation_intelligence || {};
     renderAutomationReview();
     renderOverlapReview();
+    renderModernizationReview();
     renderOpportunities();
     try {
       const mapResponse = await fetch(new URL('api/relationships', root), {credentials:'same-origin',cache:'no-store'});
@@ -362,6 +363,54 @@ function renderOpportunities() {
     host.append(row);
   }
   host.append(elem('p', 'All findings are review suggestions, not verified faults. No automatic edits, deletions or commands are performed.', 'automation-caveat'));
+}
+
+/* v0.21: bounded suggestions derived only from already-sanitized exact-reference evidence.
+   Never correlate flow entries with action counts as if they were the same configuration.
+   Do not expose raw automation names, paths, schedules, templates, or services. */
+function modernizationCandidates(items, coveragePartial) {
+  const cases = [];
+  for (const d of items || []) {
+    if (!d || d.virtual || !d.action_overlap || !d.action_overlap.potential_overlap) continue;
+    const count = d.action_overlap.configuration_count;
+    if (!Number.isInteger(count) || count < 2) continue;
+    const flows = Array.isArray(d.automation_flows) ? d.automation_flows : [];
+    const branching = flows.filter(f => f && f.branching).length;
+    const limited = flows.some(f => f && f.needs_review);
+    cases.push({
+      name: String(d.name || 'Unnamed device'),
+      count, branching, limited,
+      evidence: count + ' distinct checked configurations directly reference this device as an action target.' +
+        (branching ? ' ' + branching + ' sanitized device-linked flow outlines include branches.' : ''),
+      check: 'In Home Assistant, inspect the configurations controlling this device. Compare WHEN, IF and THEN, intentional exceptions, seasonal modes and manual holds before considering consolidation.'
+    });
+  }
+  cases.sort((a,b) => b.count-a.count || alpha(a.name,b.name));
+  return {cases: cases.slice(0,8),total:cases.length,coveragePartial:!!coveragePartial};
+}
+
+function renderModernizationReview() {
+  const host = get('modernization-items');
+  if (!host) return;
+  host.replaceChildren();
+  const result = modernizationCandidates(devices, automationIntelligence.coverage_is_partial);
+  get('modernization-count').textContent = result.total + ' review candidates';
+  if (!result.total) {
+    host.append(elem('p','No devices with multiple direct action configurations were found in the checked evidence. This does not rule out indirect automation interactions.','hint'));
+  }
+  for (const finding of result.cases) {
+    const row = elem('div',undefined,'opportunity-entry');
+    row.append(elem('strong',finding.name + ' — ' + finding.count + ' configurations'));
+    row.append(elem('p','Evidence: ' + finding.evidence,'opportunity-evidence'));
+    row.append(elem('p','Check: ' + finding.check,'opportunity-next'));
+    if (finding.limited) row.append(elem('p','Some flows contain templates or structures that were not interpreted.','automation-caveat'));
+    host.append(row);
+  }
+  host.append(elem('p',
+    'This is a shortlist, not a conflict detector or a claim that reducing the number of automations is beneficial. ' +
+    'A homeowner must verify the goal, exceptional comfort/safety rules, and intended behaviour of every rule.' +
+    (result.coveragePartial ? ' Scan coverage is partial.' : ' Only directly accessible configurations were checked.'),
+    'automation-caveat'));
 }
 
 function renderOverlapReview() {
