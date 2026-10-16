@@ -2,6 +2,12 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.20.0] — 2026-10-16
+- Stabilization release: declare amd64 alongside aarch64 with architecture-specific CI builds; verify an amd64 container starts and restricts ingress.
+- Document installed-host acceptance and the difference between build, container smoke test, and Home Assistant deployment.
+- Keep experimental status, privacy safeguards, read-only behavior and persistent /data relationships unchanged.
+- Configuration of privacy preferences and actionable HA navigation are deferred until separately tested.
+
 ## [0.19.0] — 2026-10-15
 - Begin Phase 5 with compact, read-only Dependency Intelligence over existing homeowner-confirmed power mappings.
 - Relate confirmed physical links to reported outlet state, available electrical observations, and device-level automation role summaries while explicitly stating evidence limits.

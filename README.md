@@ -1,4 +1,4 @@
-# Home Explorer v0.19.0 — Explore Your Connected Home
+# Home Explorer v0.20.0 — Explore Your Connected Home
 
 **Home Explorer** is an application designed for read-only device and capability explorer for Home Assistant, running locally through authenticated Home Assistant Ingress. It helps you understand what Home Assistant can see without issuing commands or modifying devices and automations.
 
@@ -47,6 +47,14 @@ The new compact investigation panel highlights multiple exact action references,
 
 Uses named, bounded evidence-based findings: ambiguous saved appliance registrations, unavailable mapped outlet states, and up to three of the most frequently referenced automation action targets. Each includes a factual evidence label, explicit uncertainty and a homeowner review step. This is not defect detection or instruction to remove integrations. No new HA commands.
 
+## Release qualification and support boundaries (v0.20.0)
+
+Home Explorer remains **experimental**. Declared architectures are **aarch64** (Home Assistant Green) and **amd64**. GitHub CI builds ARM64 and builds/starts amd64 in a Linux runner, checks access controls and runs regression tests. CI does **not** establish that the add-on installs and behaves correctly on every host or Home Assistant release.
+
+Known deployment evidence: the homeowner has exercised v0.19.0 on Home Assistant Green with an iPad; the new v0.20.0 release requires its own installed acceptance verification. No Home Assistant amd64 installation has been acceptance-tested yet.
+
+See [RELEASE_QUALIFICATION.md](RELEASE_QUALIFICATION.md) for the test matrix, acceptance checklist, limitations and issue reporting template.
+
 ## Installation and updates
 
 Repository: https://github.com/gazunni/home_explorer
@@ -63,7 +71,7 @@ Full instructions: [INSTALLATION.md](INSTALLATION.md).
 
 ## Version history
 
-Current version: **0.19.0** (October 15, 2026).
+Current version: **0.20.0** (October 16, 2026).
 
 See the [complete changelog](home_explorer/CHANGELOG.md) for release-by-release details. Release history is maintained there rather than appended to this README.
 

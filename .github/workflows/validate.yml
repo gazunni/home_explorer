@@ -37,7 +37,22 @@ jobs:
           print('Version consistent: ' + version)
           PY
 
-      - run: docker build -t home-explorer-ci home_explorer
+      - name: Verify dual architecture metadata
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          config = Path('home_explorer/config.yaml').read_text()
+          docker = Path('home_explorer/Dockerfile').read_text()
+          assert '  - aarch64' in config and '  - amd64' in config
+          assert 'aarch64|amd64' in docker
+          assert 'stage: experimental' in config
+          print('Both architectures declared; stage remains experimental')
+          PY
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Build ARM64 image without publishing
+        run: docker buildx build --platform linux/arm64 --progress=plain home_explorer
+      - run: docker build --platform linux/amd64 -t home-explorer-ci home_explorer
       - run: |
           docker run -d --name home-explorer-smoke -p 18099:8099 home-explorer-ci
           sleep 4
