@@ -407,9 +407,16 @@ function modernizationCandidates(items, coveragePartial) {
     });
   }
   cases.sort((a,b) => b.count-a.count || alpha(a.name,b.name));
-  return {cases: cases.slice(0,8),total:cases.length,coveragePartial:!!coveragePartial};
+  return {cases,total:cases.length,coveragePartial:!!coveragePartial};
 }
 
+const modernizationPageSize = 5;
+let modernizationPage = 0;
+function modernizationPageSlice(items,page) {
+  const pages = Math.max(1, Math.ceil(items.length / modernizationPageSize));
+  const index = Math.max(0, Math.min(page, pages - 1));
+  return {index,pages,items:items.slice(index * modernizationPageSize,(index + 1) * modernizationPageSize)};
+}
 function renderModernizationReview() {
   const host = get('modernization-items');
   if (!host) return;
@@ -419,7 +426,14 @@ function renderModernizationReview() {
   if (!result.total) {
     host.append(elem('p','No devices with multiple direct action configurations were found in the checked evidence. This does not rule out indirect automation interactions.','hint'));
   }
-  for (const finding of result.cases) {
+  const page = modernizationPageSlice(result.cases, modernizationPage);
+  modernizationPage = page.index;
+  const start = result.total ? page.index * modernizationPageSize + 1 : 0;
+  const end = result.total ? start + page.items.length - 1 : 0;
+  get('modernization-page-status').textContent = start + '–' + end + ' of ' + result.total + ' shown · Page ' + (page.index + 1) + ' of ' + page.pages;
+  get('modernization-prev').disabled = page.index === 0;
+  get('modernization-next').disabled = page.index >= page.pages - 1;
+  for (const finding of page.items) {
     const row = elem('div',undefined,'opportunity-entry');
     row.append(elem('strong',finding.name + ' — ' + finding.count + ' configurations'));
     row.append(elem('p','Evidence: ' + finding.evidence,'opportunity-evidence'));
@@ -433,6 +447,9 @@ function renderModernizationReview() {
     (result.coveragePartial ? ' Scan coverage is partial.' : ' Only directly accessible configurations were checked.'),
     'automation-caveat'));
 }
+
+get('modernization-prev').addEventListener('click', () => {modernizationPage--;renderModernizationReview();});
+get('modernization-next').addEventListener('click', () => {modernizationPage++;renderModernizationReview();});
 
 function renderOverlapReview() {
   const host = get('overlap-items');
