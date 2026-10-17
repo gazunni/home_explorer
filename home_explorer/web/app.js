@@ -470,6 +470,13 @@ function renderModernizationReview() {
         const content = phases[key] ? (types.length ? types.join(' · ') : 'Present; details not interpreted') : 'Not specified at top level';
         flowBox.append(elem('p',label + ': ' + content,'automation-flow-line'));
       }
+      if (f.opposing_targeted_actions && Array.isArray(f.targeted_directions) && f.targeted_directions.includes('on') && f.targeted_directions.includes('off')) {
+        flowBox.append(elem('p','Review: this configuration contains both ON and OFF commands explicitly targeting entities associated with this device. They may be sequential or conditional, not conflicting.','automation-caveat'));
+      } else if (Array.isArray(f.targeted_directions) && f.targeted_directions.length === 1) {
+        flowBox.append(elem('p','Confirmed configured target direction: ' + f.targeted_directions[0].toUpperCase() + ' on an entity associated with this device. No runtime action is proven.','automation-caveat'));
+      } else {
+        flowBox.append(elem('p','No recognized ON/OFF action with an explicit entity target was attributable to this device.','automation-caveat'));
+      }
       if (f.branching) flowBox.append(elem('p','Branches or repeated steps exist; execution paths are not established.','automation-caveat'));
       if (Array.isArray(f.action_types) && f.action_types.some(t=>t.includes('Thermostat') || t.includes('Fan ') || t.includes('Switch '))) flowBox.append(elem('p','Action categories describe configuration only; check Home Assistant traces to establish actual commands.','automation-caveat'));
       if (f.needs_review) flowBox.append(elem('p','Limited/template structure requires manual inspection.','automation-caveat'));
