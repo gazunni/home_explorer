@@ -452,58 +452,38 @@ function renderModernizationReview() {
   for (const finding of page.items) {
     const row = elem('div',undefined,'opportunity-entry');
     row.append(elem('strong',finding.name + ' — ' + finding.count + ' configurations'));
-    row.append(elem('p','Evidence: ' + finding.evidence,'opportunity-evidence'));
-    row.append(elem('p','Check: ' + finding.check,'opportunity-next'));
-    if (finding.limited) row.append(elem('p','Some flows contain templates or structures that were not interpreted.','automation-caveat'));
+    if (finding.limited) row.append(elem('p','Some structures need manual inspection.','automation-caveat'));
     const details = elem('details', undefined, 'modernization-guidance');
-    details.append(elem('summary','Guided review — show available evidence and checklist'));
-    if (!finding.flows.length) {
-      details.append(elem('p','No sanitized device-linked flow outlines are available for this candidate. Inspect the automations directly in Home Assistant.','automation-caveat'));
-    }
+    details.append(elem('summary','Show ' + finding.totalFlows + ' available flow outlines'));
+    if (!finding.flows.length) details.append(elem('p','No sanitized flow outlines available for this candidate.','automation-caveat'));
     for (let i = 0; i < finding.flows.length; i++) {
       const f = finding.flows[i];
       const flowBox = elem('div', undefined, 'modernization-flow');
-      flowBox.append(elem('strong','Available flow outline ' + (i+1) + ' of ' + finding.totalFlows));
+      flowBox.append(elem('strong','Flow ' + (i + 1) + ' of ' + finding.totalFlows));
       for (const [key, label] of [['trigger','WHEN'],['condition','IF'],['action','THEN']]) {
         const phases = f.phases || {};
-        const types = Array.isArray(f[key + '_types']) ? f[key + '_types'] : [];
-        const content = phases[key] ? (types.length ? types.join(' · ') : 'Present; details not interpreted') : 'Not specified at top level';
+        const types = Array.isArray(f[key + '_types']) ? f[key + '_types'].filter(x => x !== 'Action step (not executed)') : [];
+        const content = phases[key] ? (types.length ? types.join(' · ') : 'Not interpreted') : 'None at top level';
         flowBox.append(elem('p',label + ': ' + content,'automation-flow-line'));
       }
-      if (f.opposing_targeted_actions && Array.isArray(f.targeted_directions) && f.targeted_directions.includes('on') && f.targeted_directions.includes('off')) {
-        flowBox.append(elem('p','Review: this configuration contains both ON and OFF commands explicitly targeting entities associated with this device. They may be sequential or conditional, not conflicting.','automation-caveat'));
-      } else if (Array.isArray(f.targeted_directions) && f.targeted_directions.length === 1) {
-        flowBox.append(elem('p','Confirmed configured target direction: ' + f.targeted_directions[0].toUpperCase() + ' on an entity associated with this device. No runtime action is proven.','automation-caveat'));
+      const directions = Array.isArray(f.targeted_directions) ? f.targeted_directions : [];
+      if (f.opposing_targeted_actions && directions.includes('on') && directions.includes('off')) {
+        flowBox.append(elem('p','Review: ON and OFF target this device; ordering and conditions unknown.','automation-caveat'));
+      } else if (directions.length === 1) {
+        flowBox.append(elem('p','Target: ' + directions[0].toUpperCase() + ' command to this device.','automation-caveat'));
       } else {
-        flowBox.append(elem('p','No recognized ON/OFF action with an explicit entity target was attributable to this device.','automation-caveat'));
+        flowBox.append(elem('p','Explicit ON/OFF target not established.','automation-caveat'));
       }
-      if (f.branching) flowBox.append(elem('p','Branches or repeated steps exist; execution paths are not established.','automation-caveat'));
-      if (Array.isArray(f.action_types) && f.action_types.some(t=>t.includes('Thermostat') || t.includes('Fan ') || t.includes('Switch '))) flowBox.append(elem('p','Action categories describe configuration only; check Home Assistant traces to establish actual commands.','automation-caveat'));
-      if (f.needs_review) flowBox.append(elem('p','Limited/template structure requires manual inspection.','automation-caveat'));
+      if (f.branching) flowBox.append(elem('p','Contains branches; paths not established.','automation-caveat'));
+      if (f.needs_review) flowBox.append(elem('p','Template/unsupported structure needs review.','automation-caveat'));
       details.append(flowBox);
     }
     if (finding.totalFlows > finding.flows.length) details.append(elem('p','Additional outlines omitted from this bounded view.','automation-caveat'));
-    const checklist = elem('ul',undefined,'modernization-checklist');
-    for (const text of [
-      'Identify the purpose and homeowner expectations of each configuration.',
-      'Compare exact triggers, conditions, branch paths and outputs in Home Assistant.',
-      'Record intentional exceptions: seasonal, comfort, safety and manual overrides.',
-      'Check whether any actual competing command has been observed in traces.',
-      'Only then decide whether consolidation preserves behavior; test safely before disabling old rules.'
-    ]) {
-      const li = elem('li', text);
-      checklist.append(li);
-    }
-    details.append(checklist);
-    details.append(elem('p','Flow outlines are sanitized and not proven to correspond one-to-one with the distinct action configurations counted above. This checklist is guidance only; nothing is executed or saved.','automation-caveat'));
     row.append(details);
     host.append(row);
   }
-  host.append(elem('p',
-    'This is a shortlist, not a conflict detector or a claim that reducing the number of automations is beneficial. ' +
-    'A homeowner must verify the goal, exceptional comfort/safety rules, and intended behaviour of every rule.' +
-    (result.coveragePartial ? ' Scan coverage is partial.' : ' Only directly accessible configurations were checked.'),
-    'automation-caveat'));
+  const note = get('modernization-coverage-note');
+  note.textContent = result.coveragePartial ? 'Scan coverage is partial.' : 'Only accessible configurations were checked.';
 }
 
 get('modernization-prev').addEventListener('click', () => {modernizationPage--;renderModernizationReview();});
