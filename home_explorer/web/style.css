@@ -239,3 +239,9 @@
 .modernization-flow p{margin:5px 0;overflow-wrap:anywhere}
 .modernization-checklist{padding-left:22px;line-height:1.6;color:#c2d6df}
 .modernization-checklist li{margin:7px 0}
+
+/* v0.26.0: consolidated guidance in a single optional disclosure. */
+.modernization-common-guidance{border:1px solid #36546b;border-radius:9px;padding:10px 14px;margin:12px 0 16px;background:#10253a}
+.modernization-common-guidance summary{color:#a6e0d3;font-weight:600;cursor:pointer;padding:4px 0}
+.modernization-common-guidance ol{margin:12px 0;padding-left:23px;line-height:1.65;color:#d0dce4}
+.modernization-common-guidance p{font-size:13px;color:#a9bbc9;line-height:1.5}
