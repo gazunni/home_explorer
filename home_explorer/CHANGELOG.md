@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.24.0] — 2026-10-17
+- Display allowlisted configured action categories for thermostats, fans, switches, lights and helpers in guided reviews.
+- Keep unknown actions generic and do not expose service identifiers, targets or payloads.
+- Categories reflect configuration structure, not proof that commands ran.
+
 ## [0.23.0] — 2026-10-17
 - Add guided, read-only review drill-down for each Automation Modernization candidate: sanitized WHEN/IF/THEN outlines and a practical five-step homeowner checklist.
 - Preserve five-per-page pagination. Explicitly avoid claiming flow outlines map one-to-one to distinct action configurations or establish a conflict.
