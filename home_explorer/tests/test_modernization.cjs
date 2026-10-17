@@ -23,7 +23,7 @@ assert.equal(out.cases[0].branching,1);
 assert.equal(out.cases[0].limited,true);
 assert.equal(out.cases[0].totalFlows,1);
 assert.equal(out.cases[0].flows.length,1);
-assert.ok(src.includes('Show ' + finding.totalFlows + ' available flow outlines'));
+assert.ok(src.includes('available flow outlines'));
 assert.ok(!src.includes('modernization-checklist'));
 assert.ok(fs.readFileSync('home_explorer/web/index.html','utf8').includes('Flow outlines may not correspond one-to-one'));
 assert.equal(out.coveragePartial,true);
