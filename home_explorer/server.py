@@ -58,7 +58,7 @@ AUTOMATION_REFERENCES = {}
 AUTOMATION_REFERENCES_AT = 0.0
 AUTOMATION_REFERENCE_TTL = 1800
 # Conservative metadata-only concealment. Security context takes priority over convenience.
-SECURITY_NAME_PATTERN = re.compile(r'(?:alarm|armed|disarm|security|surveillance|camera|cctv|doorbell|lock|unlock|intrud|motion detect|entry|access control|keypad|presence|occupan|away mode|vacation|garage door|gate|siren|panic|smoke alarm|carbon monoxide|co detector|safe|credential|password|pin code|geo.?fenc)', re.IGNORECASE)
+SECURITY_NAME_PATTERN = re.compile(r'(?:private|sensitive|do.not.show|confidential|secret|alarm|armed|disarm|security|surveillance|camera|cctv|doorbell|lock|unlock|intrud|motion detect|entry|access control|keypad|presence|occupan|away mode|vacation|garage door|gate|siren|panic|smoke alarm|carbon monoxide|co detector|safe|credential|password|pin code|geo.?fenc)', re.IGNORECASE)
 
 def automation_name_is_sensitive(alias):
     return not isinstance(alias, str) or not alias.strip() or bool(SECURITY_NAME_PATTERN.search(alias))
