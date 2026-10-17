@@ -245,3 +245,8 @@
 .modernization-common-guidance summary{color:#a6e0d3;font-weight:600;cursor:pointer;padding:4px 0}
 .modernization-common-guidance ol{margin:12px 0;padding-left:23px;line-height:1.65;color:#d0dce4}
 .modernization-common-guidance p{font-size:13px;color:#a9bbc9;line-height:1.5}
+
+/* v0.27.0: homeowner-initiated name reveal; never automatic. */
+.automation-reveal{background:#1b4456;color:#c6f4ea;border:1px solid #4e8190;border-radius:8px;padding:9px 12px;margin-top:8px;font:inherit;cursor:pointer}
+.automation-reveal-result{overflow-wrap:anywhere;color:#d7edf0;font-size:14px;line-height:1.5}
+.automation-reveal-result span{color:#a8c0cf}

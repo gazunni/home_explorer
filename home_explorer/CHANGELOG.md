@@ -2,6 +2,12 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.27.0] — 2026-10-17
+- Add homeowner-initiated Reveal automation name for device-linked guided review flows, supporting exact-name lookup in Home Assistant.
+- Only short-lived opaque random lookup keys enter normal scan output; automation aliases stay server-side until explicitly requested over the ingress-protected, read-only lookup endpoint.
+- Returned names are never stored in the browser, auto-exposed during scans or added to relationship storage. Lookup expires after 30 minutes or the next scan.
+- Preserve read-only behavior, sanitization, equipment navigation and six homeowner-confirmed relationships.
+
 ## [0.26.0] — 2026-10-17
 - Deduplicate Automation Modernization Review guidance: a single collapsible how-to-review section replaces per-device repeated checklists and disclaimers.
 - Shorten target/direction explanations and flow headings; remove redundant generic action-step labels where specific action categories are known.
