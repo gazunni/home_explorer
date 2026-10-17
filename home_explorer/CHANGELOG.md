@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.26.0] — 2026-10-17
+- Deduplicate Automation Modernization Review guidance: a single collapsible how-to-review section replaces per-device repeated checklists and disclaimers.
+- Shorten target/direction explanations and flow headings; remove redundant generic action-step labels where specific action categories are known.
+- Retain five-per-page navigation, explicit uncertainty, privacy protection, read-only operation, and six homeowner-saved relationships.
+
 ## [0.25.0] — 2026-10-17
 - Add bounded, per-device explicit action target direction (ON/OFF) evidence to sanitized automation flows.
 - Flag opposing configured actions within a single device-linked outline for manual review, never as a confirmed conflict.
