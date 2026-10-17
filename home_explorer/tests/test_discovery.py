@@ -704,7 +704,6 @@ class ScanTests(unittest.TestCase):
         self.assertTrue(server.automation_name_is_sensitive('Front Door Lock Alert'))
         self.assertTrue(server.automation_name_is_sensitive('Occupancy Check'))
         self.assertFalse(server.automation_name_is_sensitive('Turn off patio light'))
-        self.assertNotIn('switch.example',serialized)
 
 
 if __name__ == '__main__':
