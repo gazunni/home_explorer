@@ -416,7 +416,7 @@ function modernizationCandidates(items, coveragePartial) {
     const limited = flows.some(f => f && f.needs_review);
     cases.push({
       name: String(d.name || 'Unnamed device'),
-      count, branching, limited,
+      count, branching, limited, flows: flows.slice(0,12), totalFlows: flows.length,
       evidence: count + ' distinct checked configurations directly reference this device as an action target.' +
         (branching ? ' ' + branching + ' sanitized device-linked flow outlines include branches.' : ''),
       check: 'In Home Assistant, inspect the configurations controlling this device. Compare WHEN, IF and THEN, intentional exceptions, seasonal modes and manual holds before considering consolidation.'
@@ -455,6 +455,40 @@ function renderModernizationReview() {
     row.append(elem('p','Evidence: ' + finding.evidence,'opportunity-evidence'));
     row.append(elem('p','Check: ' + finding.check,'opportunity-next'));
     if (finding.limited) row.append(elem('p','Some flows contain templates or structures that were not interpreted.','automation-caveat'));
+    const details = elem('details', undefined, 'modernization-guidance');
+    details.append(elem('summary','Guided review — show available evidence and checklist'));
+    if (!finding.flows.length) {
+      details.append(elem('p','No sanitized device-linked flow outlines are available for this candidate. Inspect the automations directly in Home Assistant.','automation-caveat'));
+    }
+    for (let i = 0; i < finding.flows.length; i++) {
+      const f = finding.flows[i];
+      const flowBox = elem('div', undefined, 'modernization-flow');
+      flowBox.append(elem('strong','Available flow outline ' + (i+1) + ' of ' + finding.totalFlows));
+      for (const [key, label] of [['trigger','WHEN'],['condition','IF'],['action','THEN']]) {
+        const phases = f.phases || {};
+        const types = Array.isArray(f[key + '_types']) ? f[key + '_types'] : [];
+        const content = phases[key] ? (types.length ? types.join(' · ') : 'Present; details not interpreted') : 'Not specified at top level';
+        flowBox.append(elem('p',label + ': ' + content,'automation-flow-line'));
+      }
+      if (f.branching) flowBox.append(elem('p','Branches or repeated steps exist; execution paths are not established.','automation-caveat'));
+      if (f.needs_review) flowBox.append(elem('p','Limited/template structure requires manual inspection.','automation-caveat'));
+      details.append(flowBox);
+    }
+    if (finding.totalFlows > finding.flows.length) details.append(elem('p','Additional outlines omitted from this bounded view.','automation-caveat'));
+    const checklist = elem('ul',undefined,'modernization-checklist');
+    for (const text of [
+      'Identify the purpose and homeowner expectations of each configuration.',
+      'Compare exact triggers, conditions, branch paths and outputs in Home Assistant.',
+      'Record intentional exceptions: seasonal, comfort, safety and manual overrides.',
+      'Check whether any actual competing command has been observed in traces.',
+      'Only then decide whether consolidation preserves behavior; test safely before disabling old rules.'
+    ]) {
+      const li = elem('li', text);
+      checklist.append(li);
+    }
+    details.append(checklist);
+    details.append(elem('p','Flow outlines are sanitized and not proven to correspond one-to-one with the distinct action configurations counted above. This checklist is guidance only; nothing is executed or saved.','automation-caveat'));
+    row.append(details);
     host.append(row);
   }
   host.append(elem('p',
