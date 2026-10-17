@@ -471,6 +471,7 @@ function renderModernizationReview() {
         flowBox.append(elem('p',label + ': ' + content,'automation-flow-line'));
       }
       if (f.branching) flowBox.append(elem('p','Branches or repeated steps exist; execution paths are not established.','automation-caveat'));
+      if (Array.isArray(f.action_types) && f.action_types.some(t=>t.includes('Thermostat') || t.includes('Fan ') || t.includes('Switch '))) flowBox.append(elem('p','Action categories describe configuration only; check Home Assistant traces to establish actual commands.','automation-caveat'));
       if (f.needs_review) flowBox.append(elem('p','Limited/template structure requires manual inspection.','automation-caveat'));
       details.append(flowBox);
     }

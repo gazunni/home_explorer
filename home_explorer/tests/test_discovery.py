@@ -651,5 +651,21 @@ class ScanTests(unittest.TestCase):
                [{'device_id':'1','entity_id':'fan.one','disabled_by':'user'}])
         self.assertEqual(x['displayed_devices'],0)
 
+    def test_sanitized_action_categories(self):
+        from server import automation_flow_summaries
+        configs = [{'triggers':[{'trigger':'state','entity_id':'climate.ecobee'}],
+                    'actions':[{'action':'climate.set_temperature','target':{'entity_id':'climate.ecobee'},'data':{'temperature':77}},
+                               {'action':'climate.set_hvac_mode','target':{'entity_id':'climate.ecobee'},'data':{'hvac_mode':'cool'}}]}]
+        out = automation_flow_summaries(configs, {'climate.ecobee':'thermostat'})
+        labels = out['thermostat'][0]['action_types']
+        self.assertIn('Thermostat target adjustment',labels)
+        self.assertIn('Thermostat mode selection',labels)
+        self.assertNotIn('77',str(out))
+        self.assertNotIn('climate.set_temperature',str(out))
+        unknown = automation_flow_summaries([{'actions':[{'action':'script.private_custom','entity_id':'climate.ecobee'}]}], {'climate.ecobee':'thermostat'})
+        self.assertIn('Other action (not interpreted)',unknown['thermostat'][0]['action_types'])
+        self.assertNotIn('private_custom',str(unknown))
+
+
 if __name__ == '__main__':
     unittest.main()

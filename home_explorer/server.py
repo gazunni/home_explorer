@@ -420,7 +420,26 @@ def automation_flow_summaries(configurations, device_entities):
                     if isinstance(kind, str):
                         kinds.add(categories.get(kind, 'Composite/other condition'))
                 elif role == 'action' and any(k in node for k in ('action', 'service', 'device_id', 'target', 'entity_id')):
-                    kinds.add('Action step (not executed)')
+                    # Closed, privacy-safe action categories; do not return services or targets.
+                    service = node.get('action', node.get('service'))
+                    safe_actions = {
+                        'climate.set_temperature': 'Thermostat target adjustment',
+                        'climate.set_hvac_mode': 'Thermostat mode selection',
+                        'climate.turn_off': 'Thermostat off command',
+                        'climate.turn_on': 'Thermostat on command',
+                        'switch.turn_on': 'Switch on command',
+                        'switch.turn_off': 'Switch off command',
+                        'light.turn_on': 'Light on command',
+                        'light.turn_off': 'Light off command',
+                        'fan.turn_on': 'Fan on command',
+                        'fan.turn_off': 'Fan off command',
+                        'fan.set_percentage': 'Fan speed adjustment',
+                        'input_boolean.turn_on': 'Helper on command',
+                        'input_boolean.turn_off': 'Helper off command',
+                        'notify.notify': 'Notification action',
+                    }
+                    kinds.add(safe_actions.get(service, 'Other action (not interpreted)') if isinstance(service, str)
+                              else 'Action step (not executed)')
                 if 'value_template' in node or 'data_template' in node or 'template' in node:
                     unsupported = True
                 if any(k in node for k in ('choose', 'repeat', 'parallel', 'if', 'then', 'else')):
@@ -835,7 +854,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         'scope_note': 'Exact structured references only. Templates, indirect scripts, dynamically addressed entities, and manufacturer-app automations are not resolved. A zero count does not establish that a device is unused.'
     }
     return {
-        'version': '0.23.0', 'mode': 'read-only',
+        'version': '0.24.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
