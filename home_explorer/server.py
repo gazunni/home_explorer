@@ -4,6 +4,8 @@ import hashlib
 import logging
 import os
 import re
+import secrets
+from urllib.parse import parse_qs, urlsplit
 import threading
 import time
 from collections import Counter, defaultdict
@@ -51,6 +53,10 @@ def read_query(query_type, **parameters):
 
 # Serialize scans to limit expensive concurrent Supervisor WebSocket sessions.
 SCAN_LOCK = threading.Lock()
+# Ephemeral per-scan lookup; automation names are never in normal scan results.
+AUTOMATION_REFERENCES = {}
+AUTOMATION_REFERENCES_AT = 0.0
+AUTOMATION_REFERENCE_TTL = 1800
 
 def registry_request():
     token = os.environ.get('SUPERVISOR_TOKEN', '')
@@ -90,7 +96,9 @@ def registry_request():
                 if (reply.get('id') == offset and reply.get('success')
                         and isinstance(payload, dict)
                         and isinstance(payload.get('config'), dict)):
-                    configurations.append(payload['config'])
+                    sanitized_internal = dict(payload['config'])
+                    sanitized_internal['_he_source_entity'] = entity_id
+                    configurations.append(sanitized_internal)
             except (TimeoutError, OSError, ValueError):
                 break
         return (*result, services if isinstance(services, dict) else {},
@@ -490,6 +498,7 @@ def automation_flow_summaries(configurations, device_entities):
                 continue
             results[owner].append({
                 'roles': [role for role in ('trigger','condition','action') if role in referenced_roles],
+                'review_token': config.get('_he_review_token') if isinstance(config.get('_he_review_token'), str) else None,
                 'phases': phase,
                 'trigger_types': stages['trigger'],
                 'condition_types': stages['condition'],
@@ -626,6 +635,24 @@ def socket_child_candidates(lookup, by_device):
 
 
 def scan(devices, entities, states=None, services=None, configurations=None, attempted=0):
+    global AUTOMATION_REFERENCES, AUTOMATION_REFERENCES_AT
+    # Build only on-demand lookup handles; no names enter public scan payloads.
+    prepared = []
+    new_references = {}
+    for original in (configurations or [])[:100]:
+        if not isinstance(original, dict):
+            prepared.append(original)
+            continue
+        config = dict(original)
+        alias = config.get('alias')
+        if isinstance(alias, str) and 0 < len(alias) <= 255:
+            key = secrets.token_urlsafe(18)
+            config['_he_review_token'] = key
+            new_references[key] = alias
+        prepared.append(config)
+    configurations = prepared
+    AUTOMATION_REFERENCES = new_references
+    AUTOMATION_REFERENCES_AT = time.monotonic()
     if len(devices) > MAX_DEVICES or len(entities) > MAX_ENTITIES:
         raise RuntimeError('Registry exceeds safety limit')
     by_device = defaultdict(list)
@@ -880,7 +907,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         'scope_note': 'Exact structured references only. Templates, indirect scripts, dynamically addressed entities, and manufacturer-app automations are not resolved. A zero count does not establish that a device is unused.'
     }
     return {
-        'version': '0.26.0', 'mode': 'read-only',
+        'version': '0.27.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
@@ -921,6 +948,16 @@ class Handler(BaseHTTPRequestHandler):
         if not self.allowed_gateway():
             return self.reply(403, b'Forbidden', 'text/plain')
         route = self.request_route()
+        if route.endswith('/api/automation-reference') and route.count('/api/') == 1:
+            tokens = parse_qs(urlsplit(self.path).query, keep_blank_values=True).get('token', [])
+            if len(tokens) != 1 or not re.fullmatch(r'[A-Za-z0-9_-]{16,64}', tokens[0]):
+                return self.reply(400, b'{"error":"Invalid reference"}', 'application/json')
+            if time.monotonic() - AUTOMATION_REFERENCES_AT > AUTOMATION_REFERENCE_TTL:
+                return self.reply(404, b'{"error":"Reference expired; refresh devices"}', 'application/json')
+            name = AUTOMATION_REFERENCES.get(tokens[0])
+            if name is None:
+                return self.reply(404, b'{"error":"Reference unavailable; refresh devices"}', 'application/json')
+            return self.reply(200, json.dumps({'automation_name': name}).encode(), 'application/json')
         if route.endswith('/api/relationships') and route.count('/api/') == 1:
             return self.reply(200, json.dumps(load_power_dependencies()).encode(), 'application/json')
         if route.endswith('/api/devices') and route.count('/api/') == 1:
