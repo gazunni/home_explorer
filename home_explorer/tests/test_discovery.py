@@ -690,22 +690,21 @@ class ScanTests(unittest.TestCase):
         self.assertFalse(missing)
 
 
-    def test_private_automation_name_lookup_is_opt_in(self):
+    def test_security_names_concealed_ordinary_names_visible(self):
         import server
-        sample = {'alias': 'Private test schedule name', 'actions': [
-            {'action': 'switch.turn_on', 'target': {'entity_id': 'switch.example'}}
-        ]}
-        data = server.scan(
-            [{'id':'device1','name':'Test plug','manufacturer':'Test Co','model':'Test 1'}],
-            [{'entity_id':'switch.example','device_id':'device1','platform':'test'}],
-            configurations=[sample], attempted=1
-        )
-        serialized = __import__('json').dumps(data)
-        self.assertNotIn('Private test schedule name', serialized)
-        self.assertNotIn('_he_source_entity', serialized)
-        self.assertIn('Private test schedule name', server.AUTOMATION_REFERENCES.values())
-        self.assertTrue(all(len(k) >= 16 for k in server.AUTOMATION_REFERENCES))
-        self.assertGreater(server.AUTOMATION_REFERENCES_AT, 0)
+        def payload(name):
+            return {'alias':name,'actions':[{'action':'switch.turn_on','target':{'entity_id':'switch.example'}}]}
+        devices=[{'id':'device1','name':'Test plug','manufacturer':'Test Co','model':'Test 1'}]
+        entities=[{'entity_id':'switch.example','device_id':'device1','platform':'test'}]
+        out=server.scan(devices,entities,configurations=[payload('Turn On Patio Lamp'),payload('Disable alarm when away')],attempted=2)
+        serialized=__import__('json').dumps(out)
+        self.assertIn('Turn On Patio Lamp',serialized)
+        self.assertNotIn('Disable alarm when away',serialized)
+        self.assertIn('Disable alarm when away',server.AUTOMATION_REFERENCES.values())
+        self.assertTrue(server.automation_name_is_sensitive('Front Door Lock Alert'))
+        self.assertTrue(server.automation_name_is_sensitive('Occupancy Check'))
+        self.assertFalse(server.automation_name_is_sensitive('Turn off patio light'))
+        self.assertNotIn('switch.example',serialized)
 
 
 if __name__ == '__main__':
