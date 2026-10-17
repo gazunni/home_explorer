@@ -231,3 +231,11 @@
 .modernization-pagination button{border:1px solid #507188;border-radius:8px;background:#193246;color:#d9eceb;padding:10px 14px;min-height:40px;cursor:pointer;font:inherit}
 .modernization-pagination button:disabled{opacity:.4;cursor:default}
 @media(max-width:600px){.modernization-pagination{justify-content:center}.modernization-pagination span{order:-1;width:100%;text-align:center}}
+
+/* v0.23.0: guided read-only automation modernization drill-down */
+.modernization-guidance{margin-top:12px;border-top:1px solid #375267;padding-top:12px}
+.modernization-guidance>summary{cursor:pointer;color:#9edfd0;font-weight:600;padding:9px 0}
+.modernization-flow{border-left:3px solid #41647c;margin:12px 0;padding:8px 12px;background:#12263a;border-radius:6px}
+.modernization-flow p{margin:5px 0;overflow-wrap:anywhere}
+.modernization-checklist{padding-left:22px;line-height:1.6;color:#c2d6df}
+.modernization-checklist li{margin:7px 0}
