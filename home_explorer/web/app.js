@@ -476,6 +476,29 @@ function renderModernizationReview() {
       }
       if (f.branching) flowBox.append(elem('p','Contains branches; paths not established.','automation-caveat'));
       if (f.needs_review) flowBox.append(elem('p','Template/unsupported structure needs review.','automation-caveat'));
+      if (typeof f.review_token === 'string' && /^[A-Za-z0-9_-]{16,64}$/.test(f.review_token)) {
+        const reveal = elem('button','Reveal automation name','automation-reveal');
+        reveal.type = 'button';
+        reveal.addEventListener('click',async () => {
+          reveal.disabled = true;
+          reveal.textContent = 'Looking up automation…';
+          try {
+            const response = await fetch('api/automation-reference?token=' + encodeURIComponent(f.review_token), {cache:'no-store'});
+            if (!response.ok) throw new Error('Unavailable or expired');
+            const value = await response.json();
+            if (typeof value.automation_name !== 'string') throw new Error('Invalid response');
+            const result = elem('p',undefined,'automation-reveal-result');
+            result.append(elem('strong','Automation name: '));
+            result.append(document.createTextNode(value.automation_name));
+            result.append(elem('span',' — In Home Assistant, open Settings → Automations & scenes and search this exact name.'));
+            reveal.replaceWith(result);
+          } catch (_) {
+            reveal.disabled = false;
+            reveal.textContent = 'Try reveal again (refresh devices if expired)';
+          }
+        });
+        flowBox.append(reveal);
+      }
       details.append(flowBox);
     }
     if (finding.totalFlows > finding.flows.length) details.append(elem('p','Additional outlines omitted from this bounded view.','automation-caveat'));
