@@ -667,5 +667,28 @@ class ScanTests(unittest.TestCase):
         self.assertNotIn('private_custom',str(unknown))
 
 
+
+    def test_targeted_direction_and_branch_uncertainty(self):
+        from server import automation_flow_summaries
+        cfg = {'actions':[
+            {'action':'switch.turn_on','target':{'entity_id':'switch.outlet'}},
+            {'choose':[{'sequence':[{'action':'switch.turn_off','target':{'entity_id':'switch.outlet'}}]}]},
+            {'action':'switch.turn_off','target':{'entity_id':'switch.other'}},
+        ]}
+        out=automation_flow_summaries([cfg],{'switch.outlet':'source','switch.other':'other'})
+        f=out['source'][0]
+        self.assertEqual(f['targeted_directions'],['off','on'])
+        self.assertTrue(f['opposing_targeted_actions'])
+        self.assertTrue(f['action_path_uncertain'])
+        self.assertNotIn('switch.outlet',str(out))
+        self.assertNotIn('switch.other',str(out))
+        other=out['other'][0]
+        self.assertEqual(other['targeted_directions'],['off'])
+        self.assertFalse(other['opposing_targeted_actions'])
+        missing=automation_flow_summaries([{'actions':[{'action':'switch.turn_on','target':{'device_id':'private-device'}}]}],
+                                           {'switch.outlet':'source'})
+        self.assertFalse(missing)
+
+
 if __name__ == '__main__':
     unittest.main()

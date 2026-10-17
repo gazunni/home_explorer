@@ -385,6 +385,10 @@ def automation_flow_summaries(configurations, device_entities):
             'action': config.get('actions', config.get('action', [])),
         }
         roles = defaultdict(set)
+        # Action direction is only attached to a device when a target explicitly
+        # references one of its known entities. Keep all identities server-side.
+        owner_directions = defaultdict(set)
+        owner_branches = defaultdict(set)
         stages = {}
         branch = False
         unsupported = False
@@ -440,6 +444,25 @@ def automation_flow_summaries(configurations, device_entities):
                     }
                     kinds.add(safe_actions.get(service, 'Other action (not interpreted)') if isinstance(service, str)
                               else 'Action step (not executed)')
+                    # A service without an explicit known entity target cannot
+                    # be attributed to the enclosing device.
+                    if isinstance(service, str):
+                        direction = ('on' if service in ('switch.turn_on', 'light.turn_on', 'fan.turn_on', 'climate.turn_on')
+                                     else 'off' if service in ('switch.turn_off', 'light.turn_off', 'fan.turn_off', 'climate.turn_off')
+                                     else None)
+                        if direction:
+                            target = node.get('target', {})
+                            values = []
+                            if isinstance(target, dict):
+                                values.extend(target.get('entity_id', []) if isinstance(target.get('entity_id'), list)
+                                              else [target.get('entity_id')])
+                            values.extend(node.get('entity_id', []) if isinstance(node.get('entity_id'), list)
+                                          else [node.get('entity_id')])
+                            for v in values[:100]:
+                                if isinstance(v, str) and v in device_entities:
+                                    owner_directions[device_entities[v]].add(direction)
+                                    if branch:
+                                        owner_branches[device_entities[v]].add('branch_context_present')
                 if 'value_template' in node or 'data_template' in node or 'template' in node:
                     unsupported = True
                 if any(k in node for k in ('choose', 'repeat', 'parallel', 'if', 'then', 'else')):
@@ -472,6 +495,9 @@ def automation_flow_summaries(configurations, device_entities):
                 'condition_types': stages['condition'],
                 'action_types': stages['action'],
                 'branching': branch,
+                'targeted_directions': sorted(owner_directions.get(owner, set())),
+                'opposing_targeted_actions': len(owner_directions.get(owner, set())) > 1,
+                'action_path_uncertain': branch,
                 'needs_review': unsupported,
                 'description': 'These phases are present in one automation configuration; their runtime sequence and outcomes are not verified.',
             })
@@ -854,7 +880,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         'scope_note': 'Exact structured references only. Templates, indirect scripts, dynamically addressed entities, and manufacturer-app automations are not resolved. A zero count does not establish that a device is unused.'
     }
     return {
-        'version': '0.24.0', 'mode': 'read-only',
+        'version': '0.25.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,

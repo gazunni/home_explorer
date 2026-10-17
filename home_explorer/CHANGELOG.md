@@ -2,6 +2,12 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.25.0] — 2026-10-17
+- Add bounded, per-device explicit action target direction (ON/OFF) evidence to sanitized automation flows.
+- Flag opposing configured actions within a single device-linked outline for manual review, never as a confirmed conflict.
+- Preserve branch uncertainty and distinguish global action-category structure from explicitly attributable targets. No raw entity IDs, service strings, YAML, or runtime claims in browser output.
+- Add synthetic regression tests for target attribution, unresolved targets, branch-limited interpretation and privacy.
+
 ## [0.24.0] — 2026-10-17
 - Display allowlisted configured action categories for thermostats, fans, switches, lights and helpers in guided reviews.
 - Keep unknown actions generic and do not expose service identifiers, targets or payloads.
