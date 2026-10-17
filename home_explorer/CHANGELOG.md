@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.29.0] — 2026-10-17
+- Include the v0.28 design discussion in this release: show ordinary automation aliases automatically in Guided Review; conceal names matching conservative security/privacy indicators behind a button explaining why.
+- Reveal sensitive names only after user interaction through the existing ephemeral ingress-protected lookup; never persist revealed names or write HA automations.
+- Preserve sanitized structured analysis, five-per-page modernization navigation, no changes to relationship storage, and six saved mappings.
+
 ## [0.27.0] — 2026-10-17
 - Add homeowner-initiated Reveal automation name for device-linked guided review flows, supporting exact-name lookup in Home Assistant.
 - Only short-lived opaque random lookup keys enter normal scan output; automation aliases stay server-side until explicitly requested over the ingress-protected, read-only lookup endpoint.

@@ -57,6 +57,12 @@ SCAN_LOCK = threading.Lock()
 AUTOMATION_REFERENCES = {}
 AUTOMATION_REFERENCES_AT = 0.0
 AUTOMATION_REFERENCE_TTL = 1800
+# Conservative metadata-only concealment. Security context takes priority over convenience.
+SECURITY_NAME_PATTERN = re.compile(r'(?:private|sensitive|do.not.show|confidential|secret|alarm|armed|disarm|security|surveillance|camera|cctv|doorbell|lock|unlock|intrud|motion detect|entry|access control|keypad|presence|occupan|away mode|vacation|garage door|gate|siren|panic|smoke alarm|carbon monoxide|co detector|safe|credential|password|pin code|geo.?fenc)', re.IGNORECASE)
+
+def automation_name_is_sensitive(alias):
+    return not isinstance(alias, str) or not alias.strip() or bool(SECURITY_NAME_PATTERN.search(alias))
+
 
 def registry_request():
     token = os.environ.get('SUPERVISOR_TOKEN', '')
@@ -499,6 +505,8 @@ def automation_flow_summaries(configurations, device_entities):
             results[owner].append({
                 'roles': [role for role in ('trigger','condition','action') if role in referenced_roles],
                 'review_token': config.get('_he_review_token') if isinstance(config.get('_he_review_token'), str) else None,
+                'automation_name': config.get('_he_display_name') if isinstance(config.get('_he_display_name'), str) else None,
+                'name_concealed': bool(config.get('_he_name_concealed')),
                 'phases': phase,
                 'trigger_types': stages['trigger'],
                 'condition_types': stages['condition'],
@@ -636,7 +644,7 @@ def socket_child_candidates(lookup, by_device):
 
 def scan(devices, entities, states=None, services=None, configurations=None, attempted=0):
     global AUTOMATION_REFERENCES, AUTOMATION_REFERENCES_AT
-    # Build only on-demand lookup handles; no names enter public scan payloads.
+    # Public scan shows ordinary names; sensitive aliases use opt-in opaque lookup.
     prepared = []
     new_references = {}
     for original in (configurations or [])[:100]:
@@ -647,8 +655,12 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         alias = config.get('alias')
         if isinstance(alias, str) and 0 < len(alias) <= 255:
             key = secrets.token_urlsafe(18)
-            config['_he_review_token'] = key
-            new_references[key] = alias
+            if automation_name_is_sensitive(alias):
+                config['_he_review_token'] = key
+                config['_he_name_concealed'] = True
+                new_references[key] = alias
+            else:
+                config['_he_display_name'] = alias
         prepared.append(config)
     configurations = prepared
     AUTOMATION_REFERENCES = new_references
@@ -907,7 +919,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         'scope_note': 'Exact structured references only. Templates, indirect scripts, dynamically addressed entities, and manufacturer-app automations are not resolved. A zero count does not establish that a device is unused.'
     }
     return {
-        'version': '0.27.0', 'mode': 'read-only',
+        'version': '0.29.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,

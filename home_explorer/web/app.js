@@ -476,8 +476,14 @@ function renderModernizationReview() {
       }
       if (f.branching) flowBox.append(elem('p','Contains branches; paths not established.','automation-caveat'));
       if (f.needs_review) flowBox.append(elem('p','Template/unsupported structure needs review.','automation-caveat'));
-      if (typeof f.review_token === 'string' && /^[A-Za-z0-9_-]{16,64}$/.test(f.review_token)) {
-        const reveal = elem('button','Reveal automation name','automation-reveal');
+      if (typeof f.automation_name === 'string' && f.automation_name.trim()) {
+        const name = elem('p',undefined,'automation-reveal-result');
+        name.append(elem('strong','Automation: '));
+        name.append(document.createTextNode(f.automation_name));
+        flowBox.append(name);
+      } else if (f.name_concealed && typeof f.review_token === 'string' && /^[A-Za-z0-9_-]{16,64}$/.test(f.review_token)) {
+        flowBox.append(elem('p','Security-related name concealed for privacy. Reveal only if needed.','automation-caveat'));
+        const reveal = elem('button','🔒 Reveal security-related automation name','automation-reveal');
         reveal.type = 'button';
         reveal.addEventListener('click',async () => {
           reveal.disabled = true;
