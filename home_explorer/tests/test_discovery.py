@@ -690,5 +690,23 @@ class ScanTests(unittest.TestCase):
         self.assertFalse(missing)
 
 
+    def test_private_automation_name_lookup_is_opt_in(self):
+        import server
+        sample = {'alias': 'Private test schedule name', 'actions': [
+            {'action': 'switch.turn_on', 'target': {'entity_id': 'switch.example'}}
+        ]}
+        data = server.scan(
+            [{'id':'device1','name':'Test plug','manufacturer':'Test Co','model':'Test 1'}],
+            [{'entity_id':'switch.example','device_id':'device1','platform':'test'}],
+            configurations=[sample], attempted=1
+        )
+        serialized = __import__('json').dumps(data)
+        self.assertNotIn('Private test schedule name', serialized)
+        self.assertNotIn('_he_source_entity', serialized)
+        self.assertIn('Private test schedule name', server.AUTOMATION_REFERENCES.values())
+        self.assertTrue(all(len(k) >= 16 for k in server.AUTOMATION_REFERENCES))
+        self.assertGreater(server.AUTOMATION_REFERENCES_AT, 0)
+
+
 if __name__ == '__main__':
     unittest.main()
