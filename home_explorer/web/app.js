@@ -492,7 +492,7 @@ function renderModernizationReview() {
     const button=elem('button',savedIntent ? 'Update confirmed intent' : 'Save confirmed intent','automation-reveal');
     button.type='button';
     button.addEventListener('click',async()=>{
-      if (!/^[a-f0-9]{12,64}$/.test(finding.device_key) || !cb.checked || !primary.value.trim() || !alternate.value.trim()) {
+      if (!/^device:[a-f0-9]{24}$/.test(finding.device_key) || !cb.checked || !primary.value.trim() || !alternate.value.trim()) {
         status.textContent='Select confirmation and provide both equipment descriptions.';return;
       }
       button.disabled=true;
