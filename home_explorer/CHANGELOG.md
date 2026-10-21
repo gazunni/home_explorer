@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.30.0] — 2026-10-20
+- Add bounded automation action-structure classification: conditional paths, repeated steps, parallel paths, ordered steps, and timed/wait sequences.
+- Identify whether top-level conditions or nested conditional action paths exist, without exposing times, values, identifiers or raw YAML.
+- Update guided review to distinguish observed configuration structure from execution; preserve name concealment, read-only operation, and six homeowner mappings.
+
 ## [0.29.0] — 2026-10-17
 - Include the v0.28 design discussion in this release: show ordinary automation aliases automatically in Guided Review; conceal names matching conservative security/privacy indicators behind a button explaining why.
 - Reveal sensitive names only after user interaction through the existing ephemeral ingress-protected lookup; never persist revealed names or write HA automations.
