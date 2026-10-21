@@ -293,6 +293,10 @@ async function refreshDevices() {
     automationIntelligence = data.automation_intelligence || {};
     renderAutomationReview();
     renderOverlapReview();
+    try {
+      const intentResponse = await fetch('api/homeowner-intents',{credentials:'same-origin',cache:'no-store'});
+      homeownerIntents = intentResponse.ok ? await intentResponse.json() : {};
+    } catch (_) { homeownerIntents = {}; }
     renderModernizationReview();
     renderOpportunities();
     try {
@@ -415,7 +419,7 @@ function modernizationCandidates(items, coveragePartial) {
     const branching = flows.filter(f => f && f.branching).length;
     const limited = flows.some(f => f && f.needs_review);
     cases.push({
-      name: String(d.name || 'Unnamed device'),
+      name: String(d.name || 'Unnamed device'), device_key: String(d.device_key || ''),
       count, branching, limited, flows: flows.slice(0,12), totalFlows: flows.length,
       evidence: count + ' distinct checked configurations directly reference this device as an action target.' +
         (branching ? ' ' + branching + ' sanitized device-linked flow outlines include branches.' : ''),
@@ -426,6 +430,7 @@ function modernizationCandidates(items, coveragePartial) {
   return {cases,total:cases.length,coveragePartial:!!coveragePartial};
 }
 
+let homeownerIntents = {};
 const modernizationPageSize = 5;
 let modernizationPage = 0;
 function modernizationPageSlice(items,page) {
@@ -453,6 +458,60 @@ function renderModernizationReview() {
     const row = elem('div',undefined,'opportunity-entry');
     row.append(elem('strong',finding.name + ' — ' + finding.count + ' configurations'));
     if (finding.limited) row.append(elem('p','Some structures need manual inspection.','automation-caveat'));
+    const savedIntent = homeownerIntents[finding.device_key];
+    const intent = elem('details',undefined,'homeowner-intent');
+    intent.append(elem('summary',savedIntent ? 'Homeowner-confirmed equipment reuse' : 'Document intentional equipment reuse'));
+    const explanation = elem('p','Record a homeowner-confirmed purpose. This is separate from wiring relationships and never changes Home Assistant.','automation-caveat');
+    intent.append(explanation);
+    if (savedIntent) {
+      intent.append(elem('p',savedIntent.primary + ' / ' + savedIntent.alternate + ' — ' +
+        (savedIntent.context === 'seasonal_reuse' ? 'Seasonal reuse' : 'Other confirmed use'),'homeowner-intent-saved'));
+    }
+    const primary = document.createElement('input');
+    primary.type='text'; primary.maxLength=70; primary.placeholder='Primary equipment, e.g. Terrace Heater';
+    primary.value=savedIntent?.primary || '';
+    primary.setAttribute('aria-label','Primary equipment');
+    const alternate = document.createElement('input');
+    alternate.type='text'; alternate.maxLength=70; alternate.placeholder='Alternate equipment, e.g. 80V Lawnmower Charger';
+    alternate.value=savedIntent?.alternate || '';
+    alternate.setAttribute('aria-label','Alternate equipment');
+    const context = document.createElement('select');
+    context.setAttribute('aria-label','Relationship context');
+    for (const [value,label] of [['seasonal_reuse','Seasonal equipment reuse'],['other_confirmed_use','Other intentional reuse']]) {
+      const opt=document.createElement('option'); opt.value=value; opt.textContent=label; context.append(opt);
+    }
+    context.value=savedIntent?.context || 'seasonal_reuse';
+    const inputs=elem('div',undefined,'homeowner-intent-inputs');
+    inputs.append(primary,alternate,context);
+    intent.append(inputs);
+    const confirm = document.createElement('label');
+    const cb = document.createElement('input'); cb.type='checkbox';
+    confirm.append(cb,document.createTextNode(' I confirm this equipment reuse is intentional'));
+    intent.append(confirm);
+    const status=elem('p','', 'automation-caveat');status.setAttribute('role','status');
+    const button=elem('button',savedIntent ? 'Update confirmed intent' : 'Save confirmed intent','automation-reveal');
+    button.type='button';
+    button.addEventListener('click',async()=>{
+      if (!/^[a-f0-9]{12,64}$/.test(finding.device_key) || !cb.checked || !primary.value.trim() || !alternate.value.trim()) {
+        status.textContent='Select confirmation and provide both equipment descriptions.';return;
+      }
+      button.disabled=true;
+      const revised={...homeownerIntents,[finding.device_key]:{
+        primary:primary.value.trim(),alternate:alternate.value.trim(),
+        context:context.value,confirmed:true}};
+      try {
+        const response=await fetch('api/homeowner-intents',{method:'POST',credentials:'same-origin',
+          headers:{'Content-Type':'application/json','X-Home-Explorer':'intent-update'},
+          body:JSON.stringify(revised)});
+        if(!response.ok)throw Error('Save unavailable');
+        homeownerIntents=revised;
+        status.textContent='Saved privately in Home Explorer. Home Assistant unchanged.';
+      }catch(_){status.textContent='Save failed; no changes confirmed.';}
+      finally{button.disabled=false;}
+    });
+    intent.append(button,status);
+    row.append(intent);
+
     const details = elem('details', undefined, 'modernization-guidance');
     details.append(elem('summary','Show ' + finding.totalFlows + ' available flow outlines'));
     if (!finding.flows.length) details.append(elem('p','No sanitized flow outlines available for this candidate.','automation-caveat'));
