@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.32.0] — 2026-10-21
+- Add optional registry-backed device identity selection for both primary and alternate equipment; display manual equipment as homeowner-described, not independently verified.
+- Keep the reviewed device association locked to its stable key, preserve existing legacy free-text confirmations without inventing identity claims, and verify new typed identity fields on save/read-back.
+- Add homeowner-confirmed intent removal with explicit confirmation and read-back verification; do not alter HA automations or established power mappings.
+
 ## [0.31.2] — 2026-10-21
 - Fix the homeowner-intent read-back check: compare saved field values, not JavaScript object key insertion order, which changes when server JSON is sorted.
 - Report intent-reload errors instead of silently interpreting them as an empty record set, and avoid misleading claims that an unverified save could not have written data.
