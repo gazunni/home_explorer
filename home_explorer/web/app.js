@@ -584,7 +584,7 @@ function renderModernizationReview() {
         const loaded=await verify.json();
         if (!loaded[finding.device_key] ||
             ['primary','alternate','context','confirmed','primary_identity','alternate_identity'].some(key =>
-              (key.endsWith('_identity') ? JSON.stringify(loaded[finding.device_key][key]) !== JSON.stringify(revised[finding.device_key][key]) : loaded[finding.device_key][key] !== revised[finding.device_key][key])))
+              (key.endsWith('_identity') ? (loaded[finding.device_key][key]?.kind !== revised[finding.device_key][key]?.kind || loaded[finding.device_key][key]?.device_key !== revised[finding.device_key][key]?.device_key) : loaded[finding.device_key][key] !== revised[finding.device_key][key])))
           throw Error('Saved relationship not present in read-back');
         homeownerIntents=loaded;
         status.textContent='Saved and independently verified in private storage. Refresh devices to test persistence.';
