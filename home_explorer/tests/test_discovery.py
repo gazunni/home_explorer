@@ -730,7 +730,7 @@ class ScanTests(unittest.TestCase):
     def test_homeowner_intent_private_storage(self):
         import server, tempfile
         from pathlib import Path
-        record={'a'*32:{'primary':'Terrace Heater','alternate':'80V Lawnmower Charger',
+        record={'device:'+'a'*24:{'primary':'Terrace Heater','alternate':'80V Lawnmower Charger',
                         'context':'seasonal_reuse','confirmed':True}}
         with tempfile.TemporaryDirectory() as d:
             path=Path(d)/'owner_intents.json'
@@ -738,9 +738,9 @@ class ScanTests(unittest.TestCase):
             self.assertEqual(server.load_homeowner_intents(path),record)
             self.assertEqual(server.load_homeowner_intents(Path(d)/'missing.json'),{})
         with self.assertRaises(ValueError):
-            server.validate_homeowner_intents({'a'*32:{**record['a'*32],'confirmed':False}})
+            server.validate_homeowner_intents({'device:'+'a'*24:{**record['device:'+'a'*24],'confirmed':False}})
         with self.assertRaises(ValueError):
-            server.validate_homeowner_intents({'a'*32:{**record['a'*32],'primary':'Security Alarm PIN'}})
+            server.validate_homeowner_intents({'device:'+'a'*24:{**record['device:'+'a'*24],'primary':'Security Alarm PIN'}})
 
 
 if __name__ == '__main__':
