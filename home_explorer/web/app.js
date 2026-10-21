@@ -295,8 +295,14 @@ async function refreshDevices() {
     renderOverlapReview();
     try {
       const intentResponse = await fetch(new URL('api/homeowner-intents', root),{credentials:'same-origin',cache:'no-store'});
-      homeownerIntents = intentResponse.ok ? await intentResponse.json() : {};
-    } catch (_) { homeownerIntents = {}; }
+      if (!intentResponse.ok) throw Error('HTTP '+intentResponse.status);
+      const loaded = await intentResponse.json();
+      homeownerIntents = loaded && typeof loaded === 'object' && !Array.isArray(loaded) ? loaded : {};
+    } catch (error) {
+      // Do not turn a retrieval failure into an apparent loss of saved records.
+      get('scan-notice').hidden = false;
+      get('scan-notice').textContent = 'Homeowner intent records could not be loaded ('+error.message+'). Existing records have not been deleted.';
+    }
     renderModernizationReview();
     renderOpportunities();
     try {
@@ -512,15 +518,17 @@ function renderModernizationReview() {
         const verify=await fetch(endpoint,{credentials:'same-origin',cache:'no-store'});
         if(!verify.ok)throw Error('Read-back failed (HTTP ' + verify.status + ')');
         const loaded=await verify.json();
-        if(JSON.stringify(loaded[finding.device_key]) !== JSON.stringify(revised[finding.device_key]))
+        if (!loaded[finding.device_key] ||
+            ['primary','alternate','context','confirmed'].some(key =>
+              loaded[finding.device_key][key] !== revised[finding.device_key][key]))
           throw Error('Saved relationship not present in read-back');
         homeownerIntents=loaded;
-        status.textContent='Saved and verified in private storage. Home Assistant unchanged.';
+        status.textContent='Saved and independently verified in private storage. Refresh devices to test persistence.';
         intent.querySelector('summary').textContent='Homeowner-confirmed equipment reuse';
         let shown=intent.querySelector('.homeowner-intent-saved');
         if(!shown){shown=elem('p','', 'homeowner-intent-saved');explanation.insertAdjacentElement('afterend',shown);}
         shown.textContent=loaded[finding.device_key].primary+' / '+loaded[finding.device_key].alternate+' — '+(loaded[finding.device_key].context==='seasonal_reuse'?'Seasonal reuse':'Other confirmed use');
-      }catch(error){status.textContent='Not verified: '+error.message+'. Your existing records are unchanged.';}
+      }catch(error){status.textContent='Save verification failed: '+error.message+'. The server may already have written the record; refresh devices to inspect it.';}
       finally{button.disabled=false;}
     });
     intent.append(button,status);
