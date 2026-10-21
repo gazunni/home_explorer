@@ -743,5 +743,29 @@ class ScanTests(unittest.TestCase):
             server.validate_homeowner_intents({'device:'+'a'*24:{**record['device:'+'a'*24],'primary':'Security Alarm PIN'}})
 
 
+    def test_homeowner_intent_typed_identity_and_legacy_compatibility(self):
+        import server, tempfile
+        from pathlib import Path
+        key='device:'+'a'*24
+        entry={'primary':'Terrace Heater','alternate':'80V Lawnmower Charger',
+               'context':'seasonal_reuse','confirmed':True}
+        typed={**entry,'primary_identity':{'kind':'manual','device_key':''},
+               'alternate_identity':{'kind':'registered','device_key':'device:'+'b'*24}}
+        self.assertEqual(server.validate_homeowner_intents({key:entry})[key],entry)
+        self.assertEqual(server.validate_homeowner_intents({key:typed})[key],typed)
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'notes.json'
+            server.save_homeowner_intents({key:entry},p)
+            self.assertEqual(server.load_homeowner_intents(p)[key],entry)
+            server.save_homeowner_intents({key:typed},p)
+            self.assertEqual(server.load_homeowner_intents(p)[key],typed)
+            server.save_homeowner_intents({},p)
+            self.assertEqual(server.load_homeowner_intents(p),{})
+        with self.assertRaises(ValueError):
+            server.validate_homeowner_intents({key:{**typed,'alternate_identity':{'kind':'registered','device_key':'invalid'}}})
+        with self.assertRaises(ValueError):
+            server.validate_homeowner_intents({key:{**typed,'alternate_identity':{'kind':'manual','device_key':'device:'+'b'*24}}})
+
+
 if __name__ == '__main__':
     unittest.main()

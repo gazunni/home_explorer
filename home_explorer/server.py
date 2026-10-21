@@ -226,7 +226,8 @@ def validate_homeowner_intents(records):
     for key, entry in records.items():
         if not isinstance(key, str) or not re.fullmatch(r'device:[a-f0-9]{24}', key):
             raise ValueError('Invalid device reference')
-        if not isinstance(entry, dict) or set(entry) != {'primary', 'alternate', 'context', 'confirmed'}:
+        if not isinstance(entry, dict) or not {'primary','alternate','context','confirmed'} <= set(entry) or (
+                set(entry) - {'primary','alternate','context','confirmed','primary_identity','alternate_identity'}):
             raise ValueError('Invalid intent fields')
         primary, alternate = entry['primary'], entry['alternate']
         if any(not isinstance(x, str) or not 1 <= len(x.strip()) <= 70 or PRIVATE_NAME.search(x)
@@ -234,8 +235,23 @@ def validate_homeowner_intents(records):
             raise ValueError('Invalid equipment description')
         if entry['context'] not in INTENT_CONTEXTS or entry['confirmed'] is not True:
             raise ValueError('Confirmation required')
-        validated[key] = {'primary': primary.strip(), 'alternate': alternate.strip(),
-                          'context': entry['context'], 'confirmed': True}
+        item = {'primary': primary.strip(), 'alternate': alternate.strip(),
+                'context': entry['context'], 'confirmed': True}
+        for field in ('primary_identity','alternate_identity'):
+            identity = entry.get(field)
+            if identity is None:
+                continue  # Legacy free-text notes retain their original semantics.
+            if not isinstance(identity, dict) or set(identity) != {'kind','device_key'}:
+                raise ValueError('Invalid identity')
+            kind, device_key = identity['kind'], identity['device_key']
+            if kind not in ('manual','registered') or not isinstance(device_key, str):
+                raise ValueError('Invalid identity kind')
+            if kind == 'registered' and not re.fullmatch(r'device:[a-f0-9]{24}', device_key):
+                raise ValueError('Invalid registered-device reference')
+            if kind == 'manual' and device_key != '':
+                raise ValueError('Manual equipment cannot claim a device reference')
+            item[field] = {'kind': kind, 'device_key': device_key}
+        validated[key] = item
     return validated
 
 def load_homeowner_intents(path=INTENT_FILE):
@@ -1011,7 +1027,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         'scope_note': 'Exact structured references only. Templates, indirect scripts, dynamically addressed entities, and manufacturer-app automations are not resolved. A zero count does not establish that a device is unused.'
     }
     return {
-        'version': '0.31.2', 'mode': 'read-only',
+        'version': '0.32.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,

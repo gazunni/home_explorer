@@ -1,16 +1,16 @@
-# Home Explorer v0.31.2 — Explore Your Connected Home
+# Home Explorer v0.32.0 — Explore Your Connected Home
 
-## Version 0.31.2 — Target-aware Automation Relationships
+## Version 0.32.0 — Target-aware Automation Relationships
 
 Guided review now distinguishes configured ON/OFF actions with an explicit entity target belonging to the reviewed device from unrelated global action categories. A single configuration containing both directions is a **review candidate**, not a proven conflict; parallel/conditional branches, run ordering and actual commands remain unverified. Unknown, device-ID-only and templated targets do not receive asserted direction. Read-only with no new permissions.
 
 
-## Version 0.31.2 — Single-section navigator
+## Version 0.32.0 — Single-section navigator
 
 After Home Overview, choose one of the eight feature areas from a compact dropdown. The existing selected panel becomes the only visible detail area, preserving search, relationship editing and read-only analysis. Find equipment is selected by default. Selection is kept during the page session (not saved across page reloads); all panels remain available.
 
 
-## Version 0.31.2 — Automation Modernization Review
+## Version 0.32.0 — Automation Modernization Review
 
 A new read-only review section lists up to eight devices with multiple **distinct checked configurations** directly referencing them as action targets. It provides evidence and an explicit Home Assistant investigation step, with branch-presence context from previously sanitized device flow outlines. It never calls these conflicts or recommends automatic deletion. The Ecobee case study (`docs/case-studies/ecobee-modernization-2026-10-16.md`) grounds future work; this release does **not** infer automation purpose, timing, thresholds or runtime causality, and cannot perform a full Ecobee-style consolidation automatically.
 
@@ -86,7 +86,7 @@ Full instructions: [INSTALLATION.md](INSTALLATION.md).
 
 ## Version history
 
-Current version: **0.31.2** (October 16, 2026).
+Current version: **0.32.0** (October 16, 2026).
 
 See the [complete changelog](home_explorer/CHANGELOG.md) for release-by-release details. Release history is maintained there rather than appended to this README.
 

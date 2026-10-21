@@ -258,3 +258,9 @@
 .homeowner-intent-inputs input,.homeowner-intent-inputs select{min-width:180px;flex:1;background:#132a3e;color:#dae8ec;border:1px solid #50728a;border-radius:7px;padding:10px;font:inherit}
 .homeowner-intent-saved{color:#c2efda;font-weight:600;overflow-wrap:anywhere}
 .homeowner-intent label{display:block;margin:8px 0;color:#cbdce3}
+
+/* v0.32.0 registry-backed equipment selectors */
+.homeowner-identity-selector{flex:1;min-width:240px;display:flex;flex-direction:column;gap:6px}
+.homeowner-identity-selector label{font-size:13px;font-weight:600}
+.homeowner-identity-selector select{width:100%;background:#132a3e;color:#dae8ec;border:1px solid #50728a;border-radius:7px;padding:10px;font:inherit}
+.homeowner-identity-selector select[hidden]{display:none}

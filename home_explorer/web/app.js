@@ -487,9 +487,61 @@ function renderModernizationReview() {
       const opt=document.createElement('option'); opt.value=value; opt.textContent=label; context.append(opt);
     }
     context.value=savedIntent?.context || 'seasonal_reuse';
+    const identityDevices = devices.filter(d => d && !d.virtual && /^device:[a-f0-9]{24}$/.test(d.device_key) &&
+      d.device_key !== finding.device_key && typeof d.name === 'string' && d.name.trim())
+      .sort((x,y)=>alpha(x.name,y.name));
+    function identitySelector(role, input) {
+      const wrapper=elem('div',undefined,'homeowner-identity-selector');
+      const heading=elem('label',role==='primary'?'Primary equipment identity':'Alternate equipment identity');
+      const mode=document.createElement('select');
+      mode.setAttribute('aria-label',role+' equipment identity type');
+      for(const [value,title] of [['manual','Not registered in Home Assistant'],['registered','Select registered HA device']]) {
+        const option=document.createElement('option');option.value=value;option.textContent=title;mode.append(option);
+      }
+      const chooser=document.createElement('select');
+      chooser.setAttribute('aria-label',role+' registered device');
+      const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Choose a registered device…';chooser.append(placeholder);
+      for(const d of identityDevices) {
+        const option=document.createElement('option');option.value=d.device_key;
+        option.textContent=d.name + (d.manufacturer?' — '+d.manufacturer:'');chooser.append(option);
+      }
+      const stored=savedIntent?.[role+'_identity'];
+      mode.value=stored?.kind==='registered'?'registered':'manual';
+      chooser.value=mode.value==='registered' ? stored.device_key : '';
+      if(mode.value==='registered' && !chooser.value) {
+        const unavailable=document.createElement('option');
+        unavailable.value=stored.device_key;unavailable.textContent='Previously linked device unavailable';chooser.append(unavailable);chooser.value=stored.device_key;
+      }
+      const hint=elem('p','Manual description: homeowner-confirmed, not independently verified.','automation-caveat');
+      const update=()=>{
+        chooser.hidden=mode.value!=='registered';
+        input.readOnly=mode.value==='registered';
+        hint.textContent=mode.value==='registered'
+          ? 'Identity is from the HA registry; the physical connection still requires your confirmation.'
+          : 'Homeowner description only; not independently verified.';
+      };
+      chooser.addEventListener('change',()=>{
+        const selected=identityDevices.find(d=>d.device_key===chooser.value);
+        if(selected)input.value=selected.name;
+      });
+      mode.addEventListener('change',()=>{
+        if(mode.value==='registered'){
+          const selected=identityDevices.find(d=>d.device_key===chooser.value);
+          if(selected) input.value=selected.name;
+        }
+        update();
+      });
+      wrapper.append(heading,mode,chooser,hint);update();
+      return {wrapper,mode,chooser};
+    }
+    const primaryIdentity=identitySelector('primary',primary);
+    const alternateIdentity=identitySelector('alternate',alternate);
     const inputs=elem('div',undefined,'homeowner-intent-inputs');
     inputs.append(primary,alternate,context);
     intent.append(inputs);
+    const identityInputs=elem('div',undefined,'homeowner-intent-inputs');
+    identityInputs.append(primaryIdentity.wrapper,alternateIdentity.wrapper);
+    intent.append(identityInputs);
     const confirm = document.createElement('label');
     const cb = document.createElement('input'); cb.type='checkbox';
     confirm.append(cb,document.createTextNode(' I confirm this equipment reuse is intentional'));
@@ -501,9 +553,21 @@ function renderModernizationReview() {
       if (!/^device:[a-f0-9]{24}$/.test(finding.device_key) || !cb.checked || !primary.value.trim() || !alternate.value.trim()) {
         status.textContent='Select confirmation and provide both equipment descriptions.';return;
       }
+      const referenceFor=(selector)=>{
+        if(selector.mode.value!=='registered')return {kind:'manual',device_key:''};
+        const selected=identityDevices.find(d=>d.device_key===selector.chooser.value);
+        return selected ? {kind:'registered',device_key:selected.device_key} : null;
+      };
+      const pi=referenceFor(primaryIdentity),ai=referenceFor(alternateIdentity);
+      if (!pi || !ai) {status.textContent='Choose a currently registered HA device, or select manual equipment.';return;}
+      if (pi.kind==='registered' && primary.value!==identityDevices.find(d=>d.device_key===pi.device_key)?.name ||
+          ai.kind==='registered' && alternate.value!==identityDevices.find(d=>d.device_key===ai.device_key)?.name) {
+        status.textContent='Selected device name changed; reselect it before saving.';return;
+      }
       button.disabled=true;
       const revised={...homeownerIntents,[finding.device_key]:{
         primary:primary.value.trim(),alternate:alternate.value.trim(),
+        primary_identity:pi,alternate_identity:ai,
         context:context.value,confirmed:true}};
       try {
         const basePath = location.href.split('?')[0];
@@ -519,8 +583,8 @@ function renderModernizationReview() {
         if(!verify.ok)throw Error('Read-back failed (HTTP ' + verify.status + ')');
         const loaded=await verify.json();
         if (!loaded[finding.device_key] ||
-            ['primary','alternate','context','confirmed'].some(key =>
-              loaded[finding.device_key][key] !== revised[finding.device_key][key]))
+            ['primary','alternate','context','confirmed','primary_identity','alternate_identity'].some(key =>
+              (key.endsWith('_identity') ? (loaded[finding.device_key][key]?.kind !== revised[finding.device_key][key]?.kind || loaded[finding.device_key][key]?.device_key !== revised[finding.device_key][key]?.device_key) : loaded[finding.device_key][key] !== revised[finding.device_key][key])))
           throw Error('Saved relationship not present in read-back');
         homeownerIntents=loaded;
         status.textContent='Saved and independently verified in private storage. Refresh devices to test persistence.';
@@ -531,7 +595,33 @@ function renderModernizationReview() {
       }catch(error){status.textContent='Save verification failed: '+error.message+'. The server may already have written the record; refresh devices to inspect it.';}
       finally{button.disabled=false;}
     });
-    intent.append(button,status);
+    intent.append(button);
+    if(savedIntent) {
+      const remove=elem('button','Remove confirmation','automation-reveal');
+      remove.type='button';
+      remove.addEventListener('click',async()=>{
+        if(!window.confirm('Remove this homeowner-confirmed intent? No Home Assistant automation or device will be changed.')) return;
+        const revised={...homeownerIntents};delete revised[finding.device_key];
+        try{
+          const basePath=location.href.split('?')[0];
+          const root=basePath.endsWith('/')?basePath:basePath+'/';
+          const endpoint=new URL('api/homeowner-intents',root);
+          const response=await fetch(endpoint,{method:'POST',credentials:'same-origin',
+            headers:{'Content-Type':'application/json','X-Home-Explorer':'intent-update'},body:JSON.stringify(revised)});
+          if(!response.ok)throw Error('HTTP '+response.status);
+          const check=await fetch(endpoint,{credentials:'same-origin',cache:'no-store'});
+          if(!check.ok)throw Error('Read-back HTTP '+check.status);
+          const loaded=await check.json();
+          if(Object.hasOwn(loaded,finding.device_key))throw Error('Record still present');
+          homeownerIntents=loaded;status.textContent='Confirmation removed and verified. Home Assistant unchanged.';
+          intent.querySelector('summary').textContent='Document intentional equipment reuse';
+          const shown=intent.querySelector('.homeowner-intent-saved');if(shown)shown.remove();
+          remove.remove();button.textContent='Save confirmed intent';
+        }catch(error){status.textContent='Remove not verified: '+error.message;}
+      });
+      intent.append(remove);
+    }
+    intent.append(status);
     row.append(intent);
 
     const details = elem('details', undefined, 'modernization-guidance');
