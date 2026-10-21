@@ -500,7 +500,8 @@ function renderModernizationReview() {
         primary:primary.value.trim(),alternate:alternate.value.trim(),
         context:context.value,confirmed:true}};
       try {
-        const root = location.href.split('?')[0].replace(/\\/?$/, '/');
+        const basePath = location.href.split('?')[0];
+        const root = basePath.endsWith('/') ? basePath : basePath + '/';
         const endpoint = new URL('api/homeowner-intents', root);
         const response=await fetch(endpoint,{method:'POST',credentials:'same-origin',
           headers:{'Content-Type':'application/json','X-Home-Explorer':'intent-update'},
