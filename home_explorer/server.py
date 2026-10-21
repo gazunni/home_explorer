@@ -224,7 +224,7 @@ def validate_homeowner_intents(records):
         raise ValueError('Invalid homeowner intent records')
     validated = {}
     for key, entry in records.items():
-        if not isinstance(key, str) or not re.fullmatch(r'[a-f0-9]{12,64}', key):
+        if not isinstance(key, str) or not re.fullmatch(r'device:[a-f0-9]{24}', key):
             raise ValueError('Invalid device reference')
         if not isinstance(entry, dict) or set(entry) != {'primary', 'alternate', 'context', 'confirmed'}:
             raise ValueError('Invalid intent fields')
