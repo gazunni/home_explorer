@@ -376,6 +376,58 @@ def automation_explanations(configurations, device_entities):
             for owner, roles in grouped.items()}
 
 
+def automation_behavior_shape(config):
+    """Classify only explicit structural constructs; never output values or identifiers."""
+    root = config.get('actions', config.get('action', []))
+    steps = root if isinstance(root, list) else [root] if isinstance(root, dict) else []
+    flags = {'choose': False, 'if': False, 'repeat': False, 'parallel': False,
+             'delay': False, 'wait': False, 'template': False}
+    seen = 0
+    stack = [(step, 0) for step in steps[:100]]
+    while stack and seen < 600:
+        node, depth = stack.pop()
+        seen += 1
+        if depth > 12:
+            flags['template'] = True
+            continue
+        if isinstance(node, list):
+            stack.extend((part, depth + 1) for part in node[:100])
+        elif isinstance(node, dict):
+            for flag in ('choose', 'if', 'repeat', 'parallel', 'delay'):
+                if flag in node:
+                    flags[flag] = True
+            if 'wait_template' in node or 'wait_for_trigger' in node:
+                flags['wait'] = True
+            if any(k in node for k in ('template', 'value_template', 'data_template')):
+                flags['template'] = True
+            for key in ('choose','sequence','default','then','else','repeat','parallel','if','actions','action'):
+                child = node.get(key)
+                if isinstance(child, (list, dict)):
+                    stack.append((child, depth + 1))
+    if stack:
+        flags['template'] = True
+    top_level_conditions = bool(config.get('conditions', config.get('condition', [])))
+    if flags['parallel']:
+        label = 'Parallel action paths'
+    elif flags['choose'] or flags['if']:
+        label = 'Conditional action paths'
+    elif flags['repeat']:
+        label = 'Repeated action sequence'
+    elif flags['delay'] or flags['wait']:
+        label = 'Timed or waiting sequence'
+    elif len(steps) > 1:
+        label = 'Ordered action steps'
+    else:
+        label = 'Single or unclassified action'
+    # This classification does not prove actual execution or which branch ran.
+    return {'classification': label, 'conditional_actions': flags['choose'] or flags['if'],
+            'ordered_top_level_steps': len(steps) > 1 and not flags['parallel'],
+            'contains_delay_or_wait': flags['delay'] or flags['wait'],
+            'contains_parallel': flags['parallel'], 'contains_repeat': flags['repeat'],
+            'has_top_level_conditions': top_level_conditions,
+            'structural_limits': flags['template']}
+
+
 def automation_flow_summaries(configurations, device_entities):
     """Bounded per-device flow outlines from individual configurations.
 
@@ -398,6 +450,7 @@ def automation_flow_summaries(configurations, device_entities):
             'condition': config.get('conditions', config.get('condition', [])),
             'action': config.get('actions', config.get('action', [])),
         }
+        behavior = automation_behavior_shape(config)
         roles = defaultdict(set)
         # Action direction is only attached to a device when a target explicitly
         # references one of its known entities. Keep all identities server-side.
@@ -512,6 +565,7 @@ def automation_flow_summaries(configurations, device_entities):
                 'condition_types': stages['condition'],
                 'action_types': stages['action'],
                 'branching': branch,
+                'behavior': behavior,
                 'targeted_directions': sorted(owner_directions.get(owner, set())),
                 'opposing_targeted_actions': len(owner_directions.get(owner, set())) > 1,
                 'action_path_uncertain': branch,
@@ -919,7 +973,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         'scope_note': 'Exact structured references only. Templates, indirect scripts, dynamically addressed entities, and manufacturer-app automations are not resolved. A zero count does not establish that a device is unused.'
     }
     return {
-        'version': '0.29.0', 'mode': 'read-only',
+        'version': '0.30.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,

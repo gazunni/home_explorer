@@ -706,5 +706,25 @@ class ScanTests(unittest.TestCase):
         self.assertFalse(server.automation_name_is_sensitive('Turn off patio light'))
 
 
+
+    def test_behavior_shape_conservative_privacy(self):
+        from server import automation_behavior_shape
+        example = {
+            'triggers':[{'trigger':'time','at':'06:55:00'}],
+            'actions':[{'choose':[{'conditions':[{'condition':'time','after':'16:00:00'}],
+                                   'sequence':[{'action':'switch.turn_off','target':{'entity_id':'switch.private'}}]}]},
+                       {'delay':'00:05:00'}, {'action':'switch.turn_on','entity_id':'switch.private'}]
+        }
+        result=automation_behavior_shape(example)
+        self.assertEqual(result['classification'],'Conditional action paths')
+        self.assertTrue(result['conditional_actions'])
+        self.assertTrue(result['contains_delay_or_wait'])
+        self.assertFalse(result['has_top_level_conditions'])
+        self.assertNotIn('switch.private',str(result))
+        self.assertNotIn('16:00',str(result))
+        self.assertEqual(automation_behavior_shape({'actions':[{'action':'switch.turn_on'},{'action':'switch.turn_off'}]})['classification'],'Ordered action steps')
+        self.assertEqual(automation_behavior_shape({'actions':[{'parallel':[[{'action':'switch.turn_on'}],[{'action':'switch.turn_off'}]]}]})['classification'],'Parallel action paths')
+
+
 if __name__ == '__main__':
     unittest.main()

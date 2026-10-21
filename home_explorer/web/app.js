@@ -466,9 +466,16 @@ function renderModernizationReview() {
         const content = phases[key] ? (types.length ? types.join(' · ') : 'Not interpreted') : 'None at top level';
         flowBox.append(elem('p',label + ': ' + content,'automation-flow-line'));
       }
+      if (f.behavior && typeof f.behavior.classification === 'string') {
+        flowBox.append(elem('p','Structure: ' + f.behavior.classification,'automation-flow-line'));
+        if (f.behavior.has_top_level_conditions) flowBox.append(elem('p','Top-level conditions exist.','automation-flow-line'));
+        if (f.behavior.conditional_actions) flowBox.append(elem('p','Action-level conditions exist; top-level IF alone is incomplete.','automation-caveat'));
+        if (f.behavior.contains_delay_or_wait) flowBox.append(elem('p','Includes a delay or wait (duration withheld).','automation-caveat'));
+        if (f.behavior.structural_limits) flowBox.append(elem('p','Some structure could not be classified.','automation-caveat'));
+      }
       const directions = Array.isArray(f.targeted_directions) ? f.targeted_directions : [];
       if (f.opposing_targeted_actions && directions.includes('on') && directions.includes('off')) {
-        flowBox.append(elem('p','Review: ON and OFF target this device; ordering and conditions unknown.','automation-caveat'));
+        flowBox.append(elem('p',f.behavior?.conditional_actions ? 'Review: ON/OFF appear in a configuration with conditional paths; their relationship is unverified.' : 'Review: ON/OFF both appear; actual execution and relationship remain unverified.','automation-caveat'));
       } else if (directions.length === 1) {
         flowBox.append(elem('p','Target: ' + directions[0].toUpperCase() + ' command to this device.','automation-caveat'));
       } else {
