@@ -264,3 +264,8 @@
 .homeowner-identity-selector label{font-size:13px;font-weight:600}
 .homeowner-identity-selector select{width:100%;background:#132a3e;color:#dae8ec;border:1px solid #50728a;border-radius:7px;padding:10px;font:inherit}
 .homeowner-identity-selector select[hidden]{display:none}
+
+/* v0.33.0: confirmed intent contextualizes, never suppresses, review findings. */
+.intent-review-note{border-left:3px solid #72d4bf;background:#142c3e;padding:10px 14px;margin:12px 0;border-radius:6px}
+.intent-review-note strong{color:#b2e9d9}
+.intent-review-equipment{overflow-wrap:anywhere;margin:7px 0;color:#dce9ee}
