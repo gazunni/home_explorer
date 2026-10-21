@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.31.2] — 2026-10-21
+- Fix the homeowner-intent read-back check: compare saved field values, not JavaScript object key insertion order, which changes when server JSON is sorted.
+- Report intent-reload errors instead of silently interpreting them as an empty record set, and avoid misleading claims that an unverified save could not have written data.
+- No changes to stored record schema, Home Assistant automations or the six existing power relationships.
+
 ## [0.31.1] — 2026-10-20
 - Correct homeowner intent read/write URL construction for Home Assistant ingress, using the same resolved application root as existing relationship APIs.
 - Verify successful POST count and independently read back the stored record before reporting success; display an actionable HTTP/read-back error otherwise.
