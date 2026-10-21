@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.31.1] — 2026-10-20
+- Correct homeowner intent read/write URL construction for Home Assistant ingress, using the same resolved application root as existing relationship APIs.
+- Verify successful POST count and independently read back the stored record before reporting success; display an actionable HTTP/read-back error otherwise.
+- Immediately reflect a verified saved intent in the review, without changing Home Assistant or existing power relationships.
+
 ## [0.31.0] — 2026-10-20
 - Add private homeowner-confirmed intentional equipment reuse notes under each modernization candidate, including primary/alternate equipment and seasonal/other context.
 - Persist independently in /data/homeowner_intents.json with strict validation, explicit confirmation, size limits and atomic writes. Existing six power relationships are untouched.

@@ -294,7 +294,7 @@ async function refreshDevices() {
     renderAutomationReview();
     renderOverlapReview();
     try {
-      const intentResponse = await fetch('api/homeowner-intents',{credentials:'same-origin',cache:'no-store'});
+      const intentResponse = await fetch(new URL('api/homeowner-intents', root),{credentials:'same-origin',cache:'no-store'});
       homeownerIntents = intentResponse.ok ? await intentResponse.json() : {};
     } catch (_) { homeownerIntents = {}; }
     renderModernizationReview();
@@ -500,13 +500,27 @@ function renderModernizationReview() {
         primary:primary.value.trim(),alternate:alternate.value.trim(),
         context:context.value,confirmed:true}};
       try {
-        const response=await fetch('api/homeowner-intents',{method:'POST',credentials:'same-origin',
+        const basePath = location.href.split('?')[0];
+        const root = basePath.endsWith('/') ? basePath : basePath + '/';
+        const endpoint = new URL('api/homeowner-intents', root);
+        const response=await fetch(endpoint,{method:'POST',credentials:'same-origin',
           headers:{'Content-Type':'application/json','X-Home-Explorer':'intent-update'},
           body:JSON.stringify(revised)});
-        if(!response.ok)throw Error('Save unavailable');
-        homeownerIntents=revised;
-        status.textContent='Saved privately in Home Explorer. Home Assistant unchanged.';
-      }catch(_){status.textContent='Save failed; no changes confirmed.';}
+        if(!response.ok)throw Error('Save rejected (HTTP ' + response.status + ')');
+        const saved = await response.json();
+        if (!Number.isInteger(saved.saved) || saved.saved !== Object.keys(revised).length) throw Error('Save count mismatch');
+        const verify=await fetch(endpoint,{credentials:'same-origin',cache:'no-store'});
+        if(!verify.ok)throw Error('Read-back failed (HTTP ' + verify.status + ')');
+        const loaded=await verify.json();
+        if(JSON.stringify(loaded[finding.device_key]) !== JSON.stringify(revised[finding.device_key]))
+          throw Error('Saved relationship not present in read-back');
+        homeownerIntents=loaded;
+        status.textContent='Saved and verified in private storage. Home Assistant unchanged.';
+        intent.querySelector('summary').textContent='Homeowner-confirmed equipment reuse';
+        let shown=intent.querySelector('.homeowner-intent-saved');
+        if(!shown){shown=elem('p','', 'homeowner-intent-saved');explanation.insertAdjacentElement('afterend',shown);}
+        shown.textContent=loaded[finding.device_key].primary+' / '+loaded[finding.device_key].alternate+' — '+(loaded[finding.device_key].context==='seasonal_reuse'?'Seasonal reuse':'Other confirmed use');
+      }catch(error){status.textContent='Not verified: '+error.message+'. Your existing records are unchanged.';}
       finally{button.disabled=false;}
     });
     intent.append(button,status);
