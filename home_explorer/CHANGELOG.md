@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.33.0] — 2026-10-21
+- Surface saved homeowner-confirmed seasonal/intentional reuse directly in Automation Modernization Review findings with a plain-language, evidence-limited explanation.
+- Distinguish selected HA registry identities from homeowner-described equipment; keep all candidates, counts, underlying flows and manual checks intact.
+- No new writes or changes to homeowner-intent schema, six saved power mappings, HA devices or automations.
+
 ## [0.32.0] — 2026-10-21
 - Add optional registry-backed device identity selection for both primary and alternate equipment; display manual equipment as homeowner-described, not independently verified.
 - Keep the reviewed device association locked to its stable key, preserve existing legacy free-text confirmations without inventing identity claims, and verify new typed identity fields on save/read-back.
