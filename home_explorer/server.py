@@ -215,6 +215,44 @@ def save_power_dependencies(mapping, path=DEPENDENCY_FILE):
     temp.replace(path)
     return len(mapping)
 
+# Owner-confirmed seasonal equipment use, stored independently from power mappings.
+INTENT_FILE = Path('/data/homeowner_intents.json')
+INTENT_CONTEXTS = ('seasonal_reuse', 'other_confirmed_use')
+
+def validate_homeowner_intents(records):
+    if not isinstance(records, dict) or len(records) > 80:
+        raise ValueError('Invalid homeowner intent records')
+    validated = {}
+    for key, entry in records.items():
+        if not isinstance(key, str) or not re.fullmatch(r'device:[a-f0-9]{24}', key):
+            raise ValueError('Invalid device reference')
+        if not isinstance(entry, dict) or set(entry) != {'primary', 'alternate', 'context', 'confirmed'}:
+            raise ValueError('Invalid intent fields')
+        primary, alternate = entry['primary'], entry['alternate']
+        if any(not isinstance(x, str) or not 1 <= len(x.strip()) <= 70 or PRIVATE_NAME.search(x)
+               for x in (primary, alternate)):
+            raise ValueError('Invalid equipment description')
+        if entry['context'] not in INTENT_CONTEXTS or entry['confirmed'] is not True:
+            raise ValueError('Confirmation required')
+        validated[key] = {'primary': primary.strip(), 'alternate': alternate.strip(),
+                          'context': entry['context'], 'confirmed': True}
+    return validated
+
+def load_homeowner_intents(path=INTENT_FILE):
+    try:
+        return validate_homeowner_intents(json.loads(Path(path).read_text(encoding='utf-8')))
+    except (OSError, ValueError, TypeError):
+        return {}
+
+def save_homeowner_intents(records, path=INTENT_FILE):
+    validated = validate_homeowner_intents(records)
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    temp = p.with_suffix('.tmp')
+    temp.write_text(json.dumps(validated, sort_keys=True), encoding='utf-8')
+    temp.replace(p)
+    return len(validated)
+
 def power_dependency(name, states, dependencies=None, device_key=None, name_is_unique=True):
     mapping = load_power_dependencies() if dependencies is None else dependencies
     entity_id = mapping.get(device_key) if device_key else None
@@ -973,7 +1011,7 @@ def scan(devices, entities, states=None, services=None, configurations=None, att
         'scope_note': 'Exact structured references only. Templates, indirect scripts, dynamically addressed entities, and manufacturer-app automations are not resolved. A zero count does not establish that a device is unused.'
     }
     return {
-        'version': '0.30.0', 'mode': 'read-only',
+        'version': '0.31.0', 'mode': 'read-only',
         'registered_devices': len(devices), 'registered_entities': len(entities),
         'displayed_devices': len(result), 'hidden_private_devices': hidden,
         'virtual_monitor_entries': virtual_count,
@@ -1024,6 +1062,8 @@ class Handler(BaseHTTPRequestHandler):
             if name is None:
                 return self.reply(404, b'{"error":"Reference unavailable; refresh devices"}', 'application/json')
             return self.reply(200, json.dumps({'automation_name': name}).encode(), 'application/json')
+        if route.endswith('/api/homeowner-intents') and route.count('/api/') == 1:
+            return self.reply(200, json.dumps(load_homeowner_intents()).encode(), 'application/json')
         if route.endswith('/api/relationships') and route.count('/api/') == 1:
             return self.reply(200, json.dumps(load_power_dependencies()).encode(), 'application/json')
         if route.endswith('/api/devices') and route.count('/api/') == 1:
@@ -1051,10 +1091,13 @@ class Handler(BaseHTTPRequestHandler):
         if not self.allowed_gateway():
             return self.reply(403, b'Forbidden', 'text/plain')
         route = self.request_route()
-        if not route.endswith('/api/relationships') or route.count('/api/') != 1:
+        is_intents = route.endswith('/api/homeowner-intents') and route.count('/api/') == 1
+        is_relationships = route.endswith('/api/relationships') and route.count('/api/') == 1
+        if not (is_intents or is_relationships):
             return self.reply(405, b'Not allowed', 'text/plain')
+        expected_header = 'intent-update' if is_intents else 'relationship-update'
         if (self.headers.get('Content-Type', '').split(';')[0].strip() != 'application/json'
-                or self.headers.get('X-Home-Explorer') != 'relationship-update'):
+                or self.headers.get('X-Home-Explorer') != expected_header):
             return self.reply(415, b'Unsupported request', 'text/plain')
         if self.headers.get('Transfer-Encoding'):
             return self.reply(400, b'Transfer encoding not supported', 'text/plain')
@@ -1063,7 +1106,7 @@ class Handler(BaseHTTPRequestHandler):
             if not 2 <= size <= 16000:
                 return self.reply(413, b'Invalid request size', 'text/plain')
             mapping = json.loads(self.rfile.read(size))
-            saved = save_power_dependencies(mapping)
+            saved = save_homeowner_intents(mapping) if is_intents else save_power_dependencies(mapping)
             return self.reply(200, json.dumps({'saved': saved}).encode(), 'application/json')
         except (ValueError, TypeError):
             return self.reply(400, b'Invalid relationship', 'text/plain')

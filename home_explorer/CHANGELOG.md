@@ -2,6 +2,11 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.31.0] — 2026-10-20
+- Add private homeowner-confirmed intentional equipment reuse notes under each modernization candidate, including primary/alternate equipment and seasonal/other context.
+- Persist independently in /data/homeowner_intents.json with strict validation, explicit confirmation, size limits and atomic writes. Existing six power relationships are untouched.
+- Do not infer seasonal intent automatically, suppress valid review findings, modify any HA automation, or expose saved notes in scan payloads.
+
 ## [0.30.0] — 2026-10-20
 - Add bounded automation action-structure classification: conditional paths, repeated steps, parallel paths, ordered steps, and timed/wait sequences.
 - Identify whether top-level conditions or nested conditional action paths exist, without exposing times, values, identifiers or raw YAML.
