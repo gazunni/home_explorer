@@ -250,3 +250,11 @@
 .automation-reveal{background:#1b4456;color:#c6f4ea;border:1px solid #4e8190;border-radius:8px;padding:9px 12px;margin-top:8px;font:inherit;cursor:pointer}
 .automation-reveal-result{overflow-wrap:anywhere;color:#d7edf0;font-size:14px;line-height:1.5}
 .automation-reveal-result span{color:#a8c0cf}
+
+/* v0.31.0 homeowner confirmation, separate from power relationships. */
+.homeowner-intent{border:1px solid #36546b;border-radius:8px;margin-top:12px;padding:8px 12px}
+.homeowner-intent summary{cursor:pointer;color:#a8e4d6;font-weight:600}
+.homeowner-intent-inputs{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.homeowner-intent-inputs input,.homeowner-intent-inputs select{min-width:180px;flex:1;background:#132a3e;color:#dae8ec;border:1px solid #50728a;border-radius:7px;padding:10px;font:inherit}
+.homeowner-intent-saved{color:#c2efda;font-weight:600;overflow-wrap:anywhere}
+.homeowner-intent label{display:block;margin:8px 0;color:#cbdce3}
