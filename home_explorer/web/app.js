@@ -465,6 +465,21 @@ function renderModernizationReview() {
     row.append(elem('strong',finding.name + ' — ' + finding.count + ' configurations'));
     if (finding.limited) row.append(elem('p','Some structures need manual inspection.','automation-caveat'));
     const savedIntent = homeownerIntents[finding.device_key];
+    if (savedIntent?.confirmed === true && typeof savedIntent.primary === 'string' && typeof savedIntent.alternate === 'string') {
+      const contextLabel = savedIntent.context === 'seasonal_reuse'
+        ? 'Intentional seasonal reuse confirmed by homeowner'
+        : 'Intentional equipment reuse confirmed by homeowner';
+      const note = elem('div',undefined,'intent-review-note');
+      note.append(elem('strong',contextLabel));
+      note.append(elem('p',savedIntent.primary+' / '+savedIntent.alternate,'intent-review-equipment'));
+      const meanings = [
+        savedIntent.primary_identity?.kind === 'registered' ? 'Primary HA registry identity selected' : 'Primary equipment is homeowner-described',
+        savedIntent.alternate_identity?.kind === 'registered' ? 'Alternate HA registry identity selected' : 'Alternate equipment is homeowner-described'
+      ];
+      note.append(elem('p',meanings.join(' · '),'automation-caveat'));
+      note.append(elem('p','These configurations share a device intentionally according to the homeowner. Continue reviewing triggers, actions and safety conditions; this note does not establish that schedules never overlap or that commands cannot compete.','automation-caveat'));
+      row.append(note);
+    }
     const intent = elem('details',undefined,'homeowner-intent');
     intent.append(elem('summary',savedIntent ? 'Homeowner-confirmed equipment reuse' : 'Document intentional equipment reuse'));
     const explanation = elem('p','Record a homeowner-confirmed purpose. This is separate from wiring relationships and never changes Home Assistant.','automation-caveat');
