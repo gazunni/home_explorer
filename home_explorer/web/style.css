@@ -278,3 +278,11 @@
 .investigation-panel textarea{display:block;width:100%;margin:10px 0}
 .investigation-panel label{display:block;margin:8px 0}
 .investigation-panel button{margin:6px 8px 6px 0}
+
+/* v0.35.0 compact investigation status and context */
+.investigation-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.investigation-status{border:1px solid #50728a;border-radius:8px;padding:4px 9px;color:#c0d7e4;font-size:.88em}
+.investigation-status.reviewed{border-color:#478b78;color:#b2e9d9}
+.investigation-status.attention{border-color:#b99056;color:#efd2a4}
+.investigation-counts{color:#bddfda;font-size:.95em}
+.investigation-conclusion{color:#c7dce5;overflow-wrap:anywhere;margin:8px 0}
