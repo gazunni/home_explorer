@@ -2,6 +2,12 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.35.0] — 2026-10-27
+- Show compact per-device investigation status alongside each candidate, including outstanding and needs-attention labels.
+- Summarize outstanding, reviewed and flagged-for-attention totals while retaining the all/outstanding/reviewed filter and all automation evidence.
+- Surface saved optional homeowner conclusion without opening the editor and update the listing immediately after save.
+- Reduce repeated seasonal-use explanation; preserve private notes, read-only HA access, established saved power relationships and homeowner intent.
+
 ## [0.34.0] — 2026-10-27
 - Add private homeowner-confirmed investigation conclusions (intentional, needs attention, reviewed without changes) with optional notes and explicit confirmation.
 - Show outstanding/reviewed totals and a candidate filter, retaining existing device-linked named automation flows and homeowner intent context.

@@ -465,7 +465,8 @@ function renderModernizationReview() {
   }
   const summary=elem('div',undefined,'investigation-toolbar');
   const reviewed=result.cases.filter(c=>investigationRecords[c.device_key]).length;
-  summary.append(elem('span',reviewed+' reviewed · '+(result.total-reviewed)+' outstanding','automation-caveat'));
+  const attention=result.cases.filter(c=>investigationRecords[c.device_key]?.status==='needs_attention').length;
+  summary.append(elem('span',(result.total-reviewed)+' outstanding · '+reviewed+' reviewed · '+attention+' flagged for attention','investigation-counts'));
   const filter=document.createElement('select');
   filter.setAttribute('aria-label','Filter investigation status');
   for(const [value,label] of [['all','All candidates'],['outstanding','Outstanding only'],['completed','Reviewed only']]) {
@@ -484,7 +485,13 @@ function renderModernizationReview() {
   get('modernization-next').disabled = page.index >= page.pages - 1;
   for (const finding of page.items) {
     const row = elem('div',undefined,'opportunity-entry');
-    row.append(elem('strong',finding.name + ' — ' + finding.count + ' configurations'));
+    const heading=elem('div',undefined,'investigation-heading');
+    heading.append(elem('strong',finding.name + ' — ' + finding.count + ' configurations'));
+    const recorded=investigationRecords[finding.device_key];
+    const label=recorded ? ({intentional:'Reviewed: Intentional',needs_attention:'Needs attention',reviewed_no_changes:'Reviewed: No changes needed'}[recorded.status]||'Reviewed') : 'Outstanding';
+    heading.append(elem('span',label,'investigation-status'+(recorded?.status==='needs_attention'?' attention':'')+(recorded?' reviewed':'')));
+    row.append(heading);
+    if(recorded?.note)row.append(elem('p','Homeowner conclusion: '+recorded.note,'investigation-conclusion'));
     if (finding.limited) row.append(elem('p','Some structures need manual inspection.','automation-caveat'));
     const conclusion=investigationRecords[finding.device_key];
     const investigation=elem('details',undefined,'investigation-panel');
@@ -522,7 +529,7 @@ function renderModernizationReview() {
         if(!actual||actual.status!==expected.status||actual.note!==expected.note||actual.confirmed!==true)throw Error('Record not present in read-back');
         investigationRecords=records;
         feedback.textContent='Saved and verified. Home Assistant unchanged.';
-        investigation.querySelector('summary').textContent='Reviewed: '+state.options[state.selectedIndex].textContent;
+        renderModernizationReview();
       } catch(error){feedback.textContent='Not verified: '+error.message;}
       finally{save.disabled=false;}
     });
@@ -559,7 +566,7 @@ function renderModernizationReview() {
         savedIntent.alternate_identity?.kind === 'registered' ? 'Alternate HA registry identity selected' : 'Alternate equipment is homeowner-described'
       ];
       note.append(elem('p',meanings.join(' · '),'automation-caveat'));
-      note.append(elem('p','These configurations share a device intentionally according to the homeowner. Continue reviewing triggers, actions and safety conditions; this note does not establish that schedules never overlap or that commands cannot compete.','automation-caveat'));
+      note.append(elem('p','Homeowner confirmation documents purpose, not proof of schedule separation or absence of competing commands.','automation-caveat'));
       row.append(note);
     }
     const intent = elem('details',undefined,'homeowner-intent');
