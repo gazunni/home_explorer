@@ -269,3 +269,12 @@
 .intent-review-note{border-left:3px solid #72d4bf;background:#142c3e;padding:10px 14px;margin:12px 0;border-radius:6px}
 .intent-review-note strong{color:#b2e9d9}
 .intent-review-equipment{overflow-wrap:anywhere;margin:7px 0;color:#dce9ee}
+
+/* v0.34.0 investigation workspace */
+.investigation-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:12px 0;padding:9px 4px}
+.investigation-toolbar select,.investigation-panel select,.investigation-panel textarea{background:#132a3e;color:#dae8ec;border:1px solid #50728a;border-radius:7px;padding:10px;font:inherit;max-width:100%}
+.investigation-panel{border:1px solid #36546b;border-radius:8px;margin:10px 0;padding:10px 12px}
+.investigation-panel summary{color:#a8e4d6;cursor:pointer;font-weight:600}
+.investigation-panel textarea{display:block;width:100%;margin:10px 0}
+.investigation-panel label{display:block;margin:8px 0}
+.investigation-panel button{margin:6px 8px 6px 0}

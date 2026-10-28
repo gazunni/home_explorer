@@ -303,6 +303,14 @@ async function refreshDevices() {
       get('scan-notice').hidden = false;
       get('scan-notice').textContent = 'Homeowner intent records could not be loaded ('+error.message+'). Existing records have not been deleted.';
     }
+    try {
+      const response = await fetch(new URL('api/investigations',root),{credentials:'same-origin',cache:'no-store'});
+      if(!response.ok)throw Error('HTTP '+response.status);
+      investigationRecords = await response.json();
+    } catch(error) {
+      get('scan-notice').hidden=false;
+      get('scan-notice').textContent='Investigation notes could not be loaded ('+error.message+'). No records were deleted.';
+    }
     renderModernizationReview();
     renderOpportunities();
     try {
@@ -437,6 +445,8 @@ function modernizationCandidates(items, coveragePartial) {
 }
 
 let homeownerIntents = {};
+let investigationRecords = {};
+let investigationFilter = 'all';
 const modernizationPageSize = 5;
 let modernizationPage = 0;
 function modernizationPageSlice(items,page) {
@@ -453,17 +463,89 @@ function renderModernizationReview() {
   if (!result.total) {
     host.append(elem('p','No devices with multiple direct action configurations were found in the checked evidence. This does not rule out indirect automation interactions.','hint'));
   }
-  const page = modernizationPageSlice(result.cases, modernizationPage);
+  const summary=elem('div',undefined,'investigation-toolbar');
+  const reviewed=result.cases.filter(c=>investigationRecords[c.device_key]).length;
+  summary.append(elem('span',reviewed+' reviewed · '+(result.total-reviewed)+' outstanding','automation-caveat'));
+  const filter=document.createElement('select');
+  filter.setAttribute('aria-label','Filter investigation status');
+  for(const [value,label] of [['all','All candidates'],['outstanding','Outstanding only'],['completed','Reviewed only']]) {
+    const opt=document.createElement('option'); opt.value=value;opt.textContent=label;filter.append(opt);
+  }
+  filter.value=investigationFilter;
+  filter.addEventListener('change',()=>{investigationFilter=filter.value;modernizationPage=0;renderModernizationReview();});
+  summary.append(filter); host.append(summary);
+  const visibleCases=result.cases.filter(c=>investigationFilter==='all'||(investigationFilter==='completed'?Boolean(investigationRecords[c.device_key]):!investigationRecords[c.device_key]));
+  const page = modernizationPageSlice(visibleCases, modernizationPage);
   modernizationPage = page.index;
-  const start = result.total ? page.index * modernizationPageSize + 1 : 0;
-  const end = result.total ? start + page.items.length - 1 : 0;
-  get('modernization-page-status').textContent = start + '–' + end + ' of ' + result.total + ' shown · Page ' + (page.index + 1) + ' of ' + page.pages;
+  const start = visibleCases.length ? page.index * modernizationPageSize + 1 : 0;
+  const end = visibleCases.length ? start + page.items.length - 1 : 0;
+  get('modernization-page-status').textContent = start + '–' + end + ' of ' + visibleCases.length + ' shown · Page ' + (page.index + 1) + ' of ' + page.pages;
   get('modernization-prev').disabled = page.index === 0;
   get('modernization-next').disabled = page.index >= page.pages - 1;
   for (const finding of page.items) {
     const row = elem('div',undefined,'opportunity-entry');
     row.append(elem('strong',finding.name + ' — ' + finding.count + ' configurations'));
     if (finding.limited) row.append(elem('p','Some structures need manual inspection.','automation-caveat'));
+    const conclusion=investigationRecords[finding.device_key];
+    const investigation=elem('details',undefined,'investigation-panel');
+    const caption=conclusion ? ('Reviewed: '+({intentional:'Intentional',needs_attention:'Needs attention',reviewed_no_changes:'No changes needed'}[conclusion.status] || 'Recorded')) : 'Investigate and record conclusion';
+    investigation.append(elem('summary',caption));
+    investigation.append(elem('p','Compare the named automation flows below with Home Assistant traces and homeowner expectations. Labels describe review conclusions, not verified execution.','automation-caveat'));
+    const state=document.createElement('select');
+    state.setAttribute('aria-label','Investigation conclusion');
+    for(const [value,label] of [['intentional','Intentional'],['needs_attention','Needs attention'],['reviewed_no_changes','Reviewed — no changes needed']]){
+      const o=document.createElement('option');o.value=value;o.textContent=label;state.append(o);
+    }
+    if(conclusion)state.value=conclusion.status;
+    const note=document.createElement('textarea');note.rows=2;note.maxLength=350;
+    note.placeholder='Optional homeowner investigation note (avoid private identifiers)';
+    note.setAttribute('aria-label','Investigation note');
+    note.value=conclusion?.note||'';
+    const agree=document.createElement('label');
+    const check=document.createElement('input');check.type='checkbox';
+    agree.append(check,document.createTextNode(' I have reviewed the evidence and confirm this conclusion'));
+    const feedback=elem('p','', 'automation-caveat');
+    const save=elem('button','Save review conclusion','automation-reveal');save.type='button';
+    save.addEventListener('click',async()=>{
+      if(!check.checked){feedback.textContent='Confirm you reviewed the evidence before saving.';return;}
+      const next={...investigationRecords,[finding.device_key]:{status:state.value,note:note.value,confirmed:true}};
+      save.disabled=true;
+      try {
+        const base=location.href.split('?')[0];const root=base.endsWith('/')?base:base+'/';
+        const endpoint=new URL('api/investigations',root);
+        const response=await fetch(endpoint,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Home-Explorer':'investigation-update'},body:JSON.stringify(next)});
+        if(!response.ok)throw Error('Save HTTP '+response.status);
+        const verify=await fetch(endpoint,{credentials:'same-origin',cache:'no-store'});
+        if(!verify.ok)throw Error('Read-back HTTP '+verify.status);
+        const records=await verify.json();
+        const actual=records[finding.device_key],expected=next[finding.device_key];
+        if(!actual||actual.status!==expected.status||actual.note!==expected.note||actual.confirmed!==true)throw Error('Record not present in read-back');
+        investigationRecords=records;
+        feedback.textContent='Saved and verified. Home Assistant unchanged.';
+        investigation.querySelector('summary').textContent='Reviewed: '+state.options[state.selectedIndex].textContent;
+      } catch(error){feedback.textContent='Not verified: '+error.message;}
+      finally{save.disabled=false;}
+    });
+    investigation.append(state,note,agree,save);
+    if(conclusion){
+      const clear=elem('button','Reopen investigation','automation-reveal');clear.type='button';
+      clear.addEventListener('click',async()=>{
+        if(!window.confirm('Reopen this investigation? The saved conclusion will be cleared.'))return;
+        const next={...investigationRecords};delete next[finding.device_key];
+        try {
+          const base=location.href.split('?')[0];const root=base.endsWith('/')?base:base+'/';
+          const endpoint=new URL('api/investigations',root);
+          const resp=await fetch(endpoint,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Home-Explorer':'investigation-update'},body:JSON.stringify(next)});
+          if(!resp.ok)throw Error('HTTP '+resp.status);
+          const verified=await fetch(endpoint,{credentials:'same-origin',cache:'no-store'});
+          const result=await verified.json();if(!verified.ok||Object.hasOwn(result,finding.device_key))throw Error('Record still present');
+          investigationRecords=result;renderModernizationReview();
+        }catch(error){feedback.textContent='Reopen not verified: '+error.message;}
+      });
+      investigation.append(clear);
+    }
+    investigation.append(feedback);row.append(investigation);
+
     const savedIntent = homeownerIntents[finding.device_key];
     if (savedIntent?.confirmed === true && typeof savedIntent.primary === 'string' && typeof savedIntent.alternate === 'string') {
       const contextLabel = savedIntent.context === 'seasonal_reuse'
@@ -481,6 +563,7 @@ function renderModernizationReview() {
       row.append(note);
     }
     const intent = elem('details',undefined,'homeowner-intent');
+    intent.open = false;
     intent.append(elem('summary',savedIntent ? 'Homeowner-confirmed equipment reuse' : 'Document intentional equipment reuse'));
     const explanation = elem('p','Record a homeowner-confirmed purpose. This is separate from wiring relationships and never changes Home Assistant.','automation-caveat');
     intent.append(explanation);

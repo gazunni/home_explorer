@@ -2,6 +2,12 @@
 
 All notable changes to Home Explorer are documented here. Home Assistant device access remains read-only; only user-confirmed relationship mappings are saved locally.
 
+## [0.34.0] — 2026-10-27
+- Add private homeowner-confirmed investigation conclusions (intentional, needs attention, reviewed without changes) with optional notes and explicit confirmation.
+- Show outstanding/reviewed totals and a candidate filter, retaining existing device-linked named automation flows and homeowner intent context.
+- Allow reopening a review with confirmation; saved and cleared records are verified via read-back. Existing power relationships, owner intent and HA automations remain unchanged.
+- Collapse homeowner equipment editor by default; owner intent summary remains visible.
+
 ## [0.33.0] — 2026-10-21
 - Surface saved homeowner-confirmed seasonal/intentional reuse directly in Automation Modernization Review findings with a plain-language, evidence-limited explanation.
 - Distinguish selected HA registry identities from homeowner-described equipment; keep all candidates, counts, underlying flows and manual checks intact.
