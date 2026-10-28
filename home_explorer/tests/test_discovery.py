@@ -767,5 +767,23 @@ class ScanTests(unittest.TestCase):
             server.validate_homeowner_intents({key:{**typed,'alternate_identity':{'kind':'manual','device_key':'device:'+'b'*24}}})
 
 
+
+    def test_investigation_records_validation_and_persistence(self):
+        import server, tempfile
+        from pathlib import Path
+        key='device:'+'a'*24
+        record={key:{'status':'intentional','note':'Seasonal equipment reuse','confirmed':True}}
+        with tempfile.TemporaryDirectory() as directory:
+            target=Path(directory)/'investigations.json'
+            self.assertEqual(server.save_investigations(record,target),1)
+            self.assertEqual(server.load_investigations(target),record)
+            server.save_investigations({},target)
+            self.assertEqual(server.load_investigations(target),{})
+        with self.assertRaises(ValueError):
+            server.validate_investigations({key:{'status':'intentional','note':'test','confirmed':False}})
+        with self.assertRaises(ValueError):
+            server.validate_investigations({key:{'status':'safe_to_delete','note':'test','confirmed':True}})
+
+
 if __name__ == '__main__':
     unittest.main()
